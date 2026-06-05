@@ -143,8 +143,13 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
         if (floorDir === 'h') {
             const xAnchors = getColumnAnchors(activeColumns, 'x', boxX, pipeW, Math.max(0, innerW - pipeW));
             const xPositions = getEvenPositions(innerW, pipeW, pipeGap, xAnchors);
-            xPositions.forEach(x => {
-                members.push(createMember('Vertical Main', boxX + x, boxY, pipeW, innerH, 'v'));
+            xPositions.forEach((x, i) => {
+                const isEdge = i === 0 || i === xPositions.length - 1;
+                if (isEdge) {
+                    members.push(createMember('Vertical Border', boxX + x, boxY, pipeW, innerH, 'v'));
+                } else {
+                    members.push(createMember('Vertical Main', boxX + x, boxY + pipeH, pipeW, innerH - 2 * pipeH, 'v'));
+                }
             });
 
             members.push(createMember('Horizontal Border', boxX, boxY, innerW, pipeH, 'h'));
@@ -164,8 +169,13 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
         } else {
             const yAnchors = getColumnAnchors(activeColumns, 'y', boxY, pipeH, Math.max(0, innerH - pipeH));
             const yPositions = getEvenPositions(innerH, pipeH, pipeGap, yAnchors);
-            yPositions.forEach(y => {
-                members.push(createMember('Horizontal Main', boxX, boxY + y, innerW, pipeH, 'h'));
+            yPositions.forEach((y, i) => {
+                const isEdge = i === 0 || i === yPositions.length - 1;
+                if (isEdge) {
+                    members.push(createMember('Horizontal Border', boxX, boxY + y, innerW, pipeH, 'h'));
+                } else {
+                    members.push(createMember('Horizontal Main', boxX + pipeW, boxY + y, innerW - 2 * pipeW, pipeH, 'h'));
+                }
             });
 
             members.push(createMember('Vertical Border', boxX, boxY, pipeW, innerH, 'v'));
@@ -471,10 +481,14 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
 
     const activeColumns = clampColumns();
     const baseMembers = createBaseMembers(activeColumns);
-    const splitMembers = baseMembers.flatMap(member => splitMemberByColumns(member, activeColumns));
+    const splitMembers = baseMembers.flatMap(member =>
+        member.label.includes('Border') ? [member] : splitMemberByColumns(member, activeColumns)
+    );
     const connectedMembers = addColumnConnectors(splitMembers, activeColumns);
     const finalMembers = mergeMembers(
-        connectedMembers.flatMap(member => splitMemberByColumns(member, activeColumns))
+        connectedMembers.flatMap(member =>
+            member.label.includes('Border') ? [member] : splitMemberByColumns(member, activeColumns)
+        )
     );
     const bomRows = [];
     let totalL = 0;
