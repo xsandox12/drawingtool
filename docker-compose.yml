@@ -1,0 +1,9 @@
+services:
+  drawingtool:
+    image: nginx:alpine
+    container_name: drawingtool
+    ports:
+      - "9100:80"
+    volumes:
+      - ./:/usr/share/nginx/html:ro
+    restart: unless-stopped
