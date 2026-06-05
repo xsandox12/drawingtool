@@ -1,0 +1,10 @@
+{
+  "name": "도면 설계 도구",
+  "short_name": "도면",
+  "description": "냉장/냉동 창고 도면 설계 도구",
+  "start_url": "./drawing_app.html",
+  "display": "standalone",
+  "background_color": "#f4f5f7",
+  "theme_color": "#1e40af",
+  "orientation": "landscape"
+}
