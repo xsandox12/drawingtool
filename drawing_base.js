@@ -550,16 +550,12 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
     const stockPlan = optimizeStock(finalMembers.map(member => ({ length: memberLength(member), label: member.label })));
     const bomTbody = document.getElementById('base-bom-tbody');
     const bomTotal = document.getElementById('base-bom-total');
-    if (bomTbody && bomTotal) {
+    const bomStockCount = document.getElementById('base-bom-stock-count');
+    if (bomTbody) {
         const totalPartCount = bomRows.reduce((sum, row) => sum + row.count, 0);
-        bomTotal.innerText = totalPartCount + ' pcs';
-        const stockRows = [
-            { label: '6m Stock', unitLen: stockLen, count: stockPlan.stockCount },
-            { label: 'Estimated Cuts', unitLen: 0, count: stockPlan.cutCount },
-            { label: 'Estimated Waste', unitLen: stockPlan.waste, count: 1 }
-        ];
+        if (bomTotal) bomTotal.innerText = totalPartCount + '개';
+        if (bomStockCount) bomStockCount.innerText = stockPlan.stockCount + '개';
         bomTbody.innerHTML = bomRows
-            .concat(stockRows)
             .sort((a, b) => a.label.localeCompare(b.label) || a.unitLen - b.unitLen)
             .map((row, i) =>
                 `<tr style="background:${i % 2 === 0 ? '#f8fafc' : '#ffffff'}">

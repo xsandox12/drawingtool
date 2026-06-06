@@ -437,20 +437,24 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
             </div>
 
             <!-- 기초조립대 파이프 수량 요약 카드 -->
-            <div id="base-bom-card" class="hidden card px-6 py-4 border-l-4 border-l-blue-500">
-                <div class="flex items-center gap-6">
-                    <!-- 좌측: 타이틀 + 총 개수 -->
-                    <div class="shrink-0 flex flex-col justify-center pr-6 border-r border-slate-200">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">파이프 수량</p>
-                        <p id="base-bom-total" class="text-3xl font-black text-amber-500 mt-0.5">0개</p>
+            <div id="base-bom-card" class="hidden card px-5 py-4">
+                <div class="flex gap-4 items-start overflow-x-auto">
+                    <div class="shrink-0 flex flex-col gap-3 pr-4 border-r border-slate-200" style="min-width:88px">
+                        <div>
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-wider">필요 파이프</p>
+                            <p id="base-bom-stock-count" class="text-xl font-black text-blue-600 mt-0.5">0개</p>
+                        </div>
+                        <div>
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-wider">파이프 수량</p>
+                            <p id="base-bom-total" class="text-xl font-black text-slate-800 mt-0.5">0개</p>
+                        </div>
                     </div>
-                    <!-- 우측: 테이블 -->
                     <div class="flex-1 overflow-x-auto">
                         <table class="text-[11px] border-collapse w-auto">
                             <thead>
                                 <tr style="background:#1e3a5f;">
-                                    <th style="padding:5px 14px;text-align:left;color:white;font-weight:900;white-space:nowrap;">파이프 종류</th>
-                                    <th style="padding:5px 14px;text-align:right;color:white;font-weight:900;white-space:nowrap;">개당 길이(mm)</th>
+                                    <th style="padding:5px 14px;text-align:left;color:white;font-weight:900;white-space:nowrap;">파이프</th>
+                                    <th style="padding:5px 14px;text-align:right;color:white;font-weight:900;white-space:nowrap;">길이</th>
                                     <th style="padding:5px 14px;text-align:center;color:white;font-weight:900;white-space:nowrap;">수량</th>
                                 </tr>
                             </thead>
@@ -522,7 +526,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
         <img id="photo-modal-img" src="" alt="" class="max-w-[80vw] max-h-[85vh] rounded-xl shadow-2xl object-contain" onclick="event.stopPropagation()">
     </div>
 
-    <script src="drawing_base.js?v=14"></script>
+    <script src="drawing_base.js?v=15"></script>
     <script src="drawing_checkplate.js?v=4"></script>
     <script>
         const globalSettings = { drawing: { panel_width: 900, panel_min_width: 200, panel_gap: 4, door_width_default: 830, door_height_default: 1800 } };
