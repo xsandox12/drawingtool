@@ -146,12 +146,17 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
         if (floorDir === 'h') {
             const xAnchors = getColumnAnchors(activeColumns, 'x', boxX, pipeW, Math.max(0, innerW - pipeW));
             const xPositions = getEvenPositions(innerW, pipeW, pipeGap, xAnchors);
-            // rev=false: 세로재가 가로재 사이에 들어감 / rev=true: 세로재가 full height
-            const vY = rev ? boxY : boxY + pipeH;
-            const vH = rev ? innerH : innerH - 2 * pipeH;
+            // Border: rev=true면 full height, false면 가로재 사이
+            // Main: 항상 가로재 사이 (반전과 무관)
+            const borderY = rev ? boxY : boxY + pipeH;
+            const borderH = rev ? innerH : innerH - 2 * pipeH;
             xPositions.forEach((x, i) => {
                 const isEdge = i === 0 || i === xPositions.length - 1;
-                members.push(createMember(isEdge ? 'Vertical Border' : 'Vertical Main', boxX + x, vY, pipeW, vH, 'v'));
+                if (isEdge) {
+                    members.push(createMember('Vertical Border', boxX + x, borderY, pipeW, borderH, 'v'));
+                } else {
+                    members.push(createMember('Vertical Main', boxX + x, boxY + pipeH, pipeW, innerH - 2 * pipeH, 'v'));
+                }
             });
 
             // rev=false: 가로재 full width / rev=true: 가로재가 세로재 사이에 들어감
@@ -174,12 +179,17 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
         } else {
             const yAnchors = getColumnAnchors(activeColumns, 'y', boxY, pipeH, Math.max(0, innerH - pipeH));
             const yPositions = getEvenPositions(innerH, pipeH, pipeGap, yAnchors);
-            // rev=false: 가로재가 세로재 사이에 들어감 / rev=true: 가로재가 full width
-            const hX = rev ? boxX : boxX + pipeW;
-            const hW = rev ? innerW : innerW - 2 * pipeW;
+            // Border: rev=true면 full width, false면 세로재 사이
+            // Main: 항상 세로재 사이 (반전과 무관)
+            const borderX = rev ? boxX : boxX + pipeW;
+            const borderW = rev ? innerW : innerW - 2 * pipeW;
             yPositions.forEach((y, i) => {
                 const isEdge = i === 0 || i === yPositions.length - 1;
-                members.push(createMember(isEdge ? 'Horizontal Border' : 'Horizontal Main', hX, boxY + y, hW, pipeH, 'h'));
+                if (isEdge) {
+                    members.push(createMember('Horizontal Border', borderX, boxY + y, borderW, pipeH, 'h'));
+                } else {
+                    members.push(createMember('Horizontal Main', boxX + pipeW, boxY + y, innerW - 2 * pipeW, pipeH, 'h'));
+                }
             });
 
             // rev=false: 세로재 full height / rev=true: 세로재가 가로재 사이에 들어감
