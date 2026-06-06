@@ -520,14 +520,14 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
         member.label.includes('Border') ? [member] : splitMemberByColumns(member, activeColumns)
     );
     const connectedMembers = addColumnConnectors(splitMembers, activeColumns);
-    const longSplitMembers = splitLongMembers(connectedMembers);
-    const finalMembers = mergeMembers(
-        longSplitMembers.flatMap(member =>
-            (member.label.includes('Border') || member.label === 'Pipe Splice')
+    const mergedMembers = mergeMembers(
+        connectedMembers.flatMap(member =>
+            member.label.includes('Border')
                 ? [member]
                 : splitMemberByColumns(member, activeColumns)
         )
     );
+    const finalMembers = splitLongMembers(mergedMembers);
     const bomRows = [];
     let totalL = 0;
 
