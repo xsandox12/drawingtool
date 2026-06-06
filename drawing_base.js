@@ -77,12 +77,13 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
     }
 
     function clampColumns() {
+        const margin = 25;
         return (typeof columns !== 'undefined' ? columns : [])
             .map(col => ({
-                x1: Math.max(0, Math.min(w, col.x)),
-                x2: Math.max(0, Math.min(w, col.x + col.width)),
-                y1: Math.max(0, Math.min(l, col.y)),
-                y2: Math.max(0, Math.min(l, col.y + col.depth))
+                x1: Math.max(0, Math.min(w, col.x - margin)),
+                x2: Math.max(0, Math.min(w, col.x + col.width + margin)),
+                y1: Math.max(0, Math.min(l, col.y - margin)),
+                y2: Math.max(0, Math.min(l, col.y + col.depth + margin))
             }))
             .filter(col => col.x2 > col.x1 && col.y2 > col.y1);
     }
