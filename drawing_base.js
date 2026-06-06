@@ -469,10 +469,10 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
 
     function drawDimensions() {
         const dimOffset = 44;
-        const x1 = ox + (25 + pipeW / 2) * scale;
-        const x2 = ox + (w - 25 - pipeW / 2) * scale;
-        const y1 = oy + (25 + pipeH / 2) * scale;
-        const y2 = oy + (l - 25 - pipeH / 2) * scale;
+        const x1 = ox + 25 * scale;
+        const x2 = ox + (w - 25) * scale;
+        const y1 = oy + 25 * scale;
+        const y2 = oy + (l - 25) * scale;
         const vx1 = typeof toViewportX === 'function' ? toViewportX(x1) : x1;
         const vx2 = typeof toViewportX === 'function' ? toViewportX(x2) : x2;
         const vy1 = typeof toViewportY === 'function' ? toViewportY(y1) : y1;
@@ -491,7 +491,7 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
         ctx.font = 'bold 11px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillText('W = ' + Math.round(w - 50 - pipeW).toLocaleString() + ' mm', (vx1 + vx2) / 2, dimY + 3);
+        ctx.fillText('W = ' + Math.round(w - 50).toLocaleString() + ' mm', (vx1 + vx2) / 2, dimY + 3);
 
         const dimX = vx2 + dimOffset;
         ctx.beginPath(); ctx.moveTo(vx2 + 4, vy1); ctx.lineTo(dimX + 2, vy1); ctx.stroke();
@@ -501,7 +501,7 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
         ctx.rotate(-Math.PI / 2);
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillText('L = ' + Math.round(l - 50 - pipeH).toLocaleString() + ' mm', 0, 0);
+        ctx.fillText('L = ' + Math.round(l - 50).toLocaleString() + ' mm', 0, 0);
         ctx.restore();
     }
 
