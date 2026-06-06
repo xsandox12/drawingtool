@@ -606,7 +606,7 @@ function renderPipeCutDiagrams(stockPlan) {
     // 동일한 파이프 조합의 원장 묶기
     const groups = [];
     stockPlan.stocks.forEach(stock => {
-        const key = stock.parts.map(p => p.len + ':' + p.label).sort().join('|');
+        const key = stock.parts.map(p => p.len).sort((a, b) => b - a).join('|');
         const existing = groups.find(g => g.key === key);
         if (existing) existing.count++;
         else groups.push({ key, count: 1, parts: stock.parts, remaining: stock.remaining });
