@@ -8,10 +8,12 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
     const pipeW = parseInt(document.getElementById('pipeW').value) || 50;
     const pipeH = parseInt(document.getElementById('pipeH').value) || 50;
     const pipeGap = parseInt(document.getElementById('pipeGap').value) || 700;
+    const braceGap = parseInt(document.getElementById('braceGap').value) || 2000;
     const zoom = typeof canvasZoom !== 'undefined' ? canvasZoom : 1;
     const stockLen = 6000;
 
     document.getElementById('gapVal').innerText = pipeGap + 'mm';
+    document.getElementById('braceGapVal').innerText = braceGap + 'mm';
 
     ctx.setLineDash([5, 5]);
     ctx.strokeStyle = '#e2e8f0';
@@ -36,6 +38,7 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
             'Horizontal Border': '가로 외곽재',
             'Horizontal Brace': '가로 보강재',
             'Horizontal Main': '가로 메인재',
+            'Pipe Splice': '이음재',
             'Vertical Border': '세로 외곽재',
             'Vertical Brace': '세로 보강재',
             'Vertical Main': '세로 메인재'
@@ -133,10 +136,10 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
 
     function createBaseMembers(activeColumns) {
         const members = [];
-        const innerW = Math.max(0, w - pipeW);
-        const innerH = Math.max(0, l - pipeH);
-        const boxX = pipeW / 2;
-        const boxY = pipeH / 2;
+        const innerW = Math.max(0, w - 50);
+        const innerH = Math.max(0, l - 50);
+        const boxX = 25;
+        const boxY = 25;
 
         if (innerW <= 0 || innerH <= 0) return members;
 
@@ -146,7 +149,7 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
             xPositions.forEach((x, i) => {
                 const isEdge = i === 0 || i === xPositions.length - 1;
                 if (isEdge) {
-                    members.push(createMember('Vertical Border', boxX + x, boxY, pipeW, innerH, 'v'));
+                    members.push(createMember('Vertical Border', boxX + x, boxY + pipeH, pipeW, innerH - 2 * pipeH, 'v'));
                 } else {
                     members.push(createMember('Vertical Main', boxX + x, boxY + pipeH, pipeW, innerH - 2 * pipeH, 'v'));
                 }
@@ -155,8 +158,8 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
             members.push(createMember('Horizontal Border', boxX, boxY, innerW, pipeH, 'h'));
             members.push(createMember('Horizontal Border', boxX, boxY + innerH - pipeH, innerW, pipeH, 'h'));
 
-            if (innerH >= 2000) {
-                const braceY = boxY + Math.max(0, (innerH - pipeH) / 2);
+            getEvenPositions(innerH, pipeH, braceGap).slice(1, -1).forEach(byOffset => {
+                const braceY = boxY + byOffset;
                 for (let i = 0; i < xPositions.length - 1; i++) {
                     const xStart = xPositions[i] + pipeW;
                     const xEnd = xPositions[i + 1];
@@ -165,14 +168,14 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
                         members.push(createMember('Horizontal Brace', boxX + xStart, braceY, braceLen, pipeH, 'h'));
                     }
                 }
-            }
+            });
         } else {
             const yAnchors = getColumnAnchors(activeColumns, 'y', boxY, pipeH, Math.max(0, innerH - pipeH));
             const yPositions = getEvenPositions(innerH, pipeH, pipeGap, yAnchors);
             yPositions.forEach((y, i) => {
                 const isEdge = i === 0 || i === yPositions.length - 1;
                 if (isEdge) {
-                    members.push(createMember('Horizontal Border', boxX, boxY + y, innerW, pipeH, 'h'));
+                    members.push(createMember('Horizontal Border', boxX + pipeW, boxY + y, innerW - 2 * pipeW, pipeH, 'h'));
                 } else {
                     members.push(createMember('Horizontal Main', boxX + pipeW, boxY + y, innerW - 2 * pipeW, pipeH, 'h'));
                 }
@@ -181,8 +184,8 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
             members.push(createMember('Vertical Border', boxX, boxY, pipeW, innerH, 'v'));
             members.push(createMember('Vertical Border', boxX + innerW - pipeW, boxY, pipeW, innerH, 'v'));
 
-            if (innerW >= 2000) {
-                const braceX = boxX + Math.max(0, (innerW - pipeW) / 2);
+            getEvenPositions(innerW, pipeW, braceGap).slice(1, -1).forEach(bxOffset => {
+                const braceX = boxX + bxOffset;
                 for (let i = 0; i < yPositions.length - 1; i++) {
                     const yStart = yPositions[i] + pipeH;
                     const yEnd = yPositions[i + 1];
@@ -191,7 +194,7 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
                         members.push(createMember('Vertical Brace', braceX, boxY + yStart, pipeW, braceLen, 'v'));
                     }
                 }
-            }
+            });
         }
 
         return members;
@@ -271,12 +274,12 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
                 if (width < minConnector) return;
 
                 const bottomY = col.y2;
-                if (bottomY >= pipeH / 2 && bottomY + pipeH <= l - pipeH / 2) {
+                if (bottomY >= 25 && bottomY + pipeH <= l - 25) {
                     pushConnector(createMember('Column Connector', x, bottomY, width, pipeH, 'h'));
                 }
 
                 const topY = col.y1 - pipeH;
-                if (topY >= pipeH / 2 && topY + pipeH <= l - pipeH / 2) {
+                if (topY >= 25 && topY + pipeH <= l - 25) {
                     pushConnector(createMember('Column Connector', x, topY, width, pipeH, 'h'));
                 }
             } else {
@@ -285,12 +288,12 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
                 if (height < minConnector) return;
 
                 const leftX = col.x1 - pipeW;
-                if (leftX >= pipeW / 2 && leftX + pipeW <= w - pipeW / 2) {
+                if (leftX >= 25 && leftX + pipeW <= w - 25) {
                     pushConnector(createMember('Column Connector', leftX, y, pipeW, height, 'v'));
                 }
 
                 const rightX = col.x2;
-                if (rightX >= pipeW / 2 && rightX + pipeW <= w - pipeW / 2) {
+                if (rightX >= 25 && rightX + pipeW <= w - 25) {
                     pushConnector(createMember('Column Connector', rightX, y, pipeW, height, 'v'));
                 }
             }
@@ -412,6 +415,38 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
         };
     }
 
+    function splitLongMembers(members) {
+        const result = [];
+        members.forEach(member => {
+            const len = memberLength(member);
+            if (len <= stockLen) {
+                result.push(member);
+                return;
+            }
+            const splitCount = Math.ceil(len / stockLen);
+            const pieceLen = len / splitCount;
+
+            if (member.dir === 'h') {
+                for (let i = 0; i < splitCount; i++) {
+                    result.push(createMember(member.label, member.x + i * pieceLen, member.y, pieceLen, member.height, 'h'));
+                    if (i < splitCount - 1) {
+                        const spliceX = member.x + (i + 1) * pieceLen;
+                        result.push(createMember('Pipe Splice', spliceX - member.height / 2, member.y, member.height, member.height, 'v'));
+                    }
+                }
+            } else {
+                for (let i = 0; i < splitCount; i++) {
+                    result.push(createMember(member.label, member.x, member.y + i * pieceLen, member.width, pieceLen, 'v'));
+                    if (i < splitCount - 1) {
+                        const spliceY = member.y + (i + 1) * pieceLen;
+                        result.push(createMember('Pipe Splice', member.x, spliceY - member.width / 2, member.width, member.width, 'h'));
+                    }
+                }
+            }
+        });
+        return result;
+    }
+
     function drawColumns() {
         if (typeof columns === 'undefined') return;
         columns.forEach(col => {
@@ -443,10 +478,10 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
 
     function drawDimensions() {
         const dimOffset = 44;
-        const x1 = ox + pipeW / 2 * scale;
-        const x2 = ox + (w - pipeW / 2) * scale;
-        const y1 = oy + pipeH / 2 * scale;
-        const y2 = oy + (l - pipeH / 2) * scale;
+        const x1 = ox + (25 + pipeW / 2) * scale;
+        const x2 = ox + (w - 25 - pipeW / 2) * scale;
+        const y1 = oy + (25 + pipeH / 2) * scale;
+        const y2 = oy + (l - 25 - pipeH / 2) * scale;
         const vx1 = typeof toViewportX === 'function' ? toViewportX(x1) : x1;
         const vx2 = typeof toViewportX === 'function' ? toViewportX(x2) : x2;
         const vy1 = typeof toViewportY === 'function' ? toViewportY(y1) : y1;
@@ -465,7 +500,7 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
         ctx.font = 'bold 11px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillText('W = ' + Math.round(w - pipeW).toLocaleString() + ' mm', (vx1 + vx2) / 2, dimY + 3);
+        ctx.fillText('W = ' + Math.round(w - 50 - pipeW).toLocaleString() + ' mm', (vx1 + vx2) / 2, dimY + 3);
 
         const dimX = vx2 + dimOffset;
         ctx.beginPath(); ctx.moveTo(vx2 + 4, vy1); ctx.lineTo(dimX + 2, vy1); ctx.stroke();
@@ -475,7 +510,7 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
         ctx.rotate(-Math.PI / 2);
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillText('L = ' + Math.round(l - pipeH).toLocaleString() + ' mm', 0, 0);
+        ctx.fillText('L = ' + Math.round(l - 50 - pipeH).toLocaleString() + ' mm', 0, 0);
         ctx.restore();
     }
 
@@ -485,9 +520,12 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
         member.label.includes('Border') ? [member] : splitMemberByColumns(member, activeColumns)
     );
     const connectedMembers = addColumnConnectors(splitMembers, activeColumns);
+    const longSplitMembers = splitLongMembers(connectedMembers);
     const finalMembers = mergeMembers(
-        connectedMembers.flatMap(member =>
-            member.label.includes('Border') ? [member] : splitMemberByColumns(member, activeColumns)
+        longSplitMembers.flatMap(member =>
+            (member.label.includes('Border') || member.label === 'Pipe Splice')
+                ? [member]
+                : splitMemberByColumns(member, activeColumns)
         )
     );
     const bomRows = [];

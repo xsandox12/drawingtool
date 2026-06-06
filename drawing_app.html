@@ -272,6 +272,11 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                             <input type="range" id="pipeGap" min="600" max="800" value="700" oninput="updateDrawing()" class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
                             <div class="flex justify-between text-[8px] font-bold text-slate-400"><span>600mm</span><span id="gapVal" class="text-blue-600">700mm</span><span>800mm</span></div>
                         </div>
+                        <div class="space-y-1">
+                            <label class="text-[9px] font-black text-slate-400 uppercase">보강재 최대 간격 (1500~3000)</label>
+                            <input type="range" id="braceGap" min="1500" max="3000" value="2000" oninput="updateDrawing()" class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                            <div class="flex justify-between text-[8px] font-bold text-slate-400"><span>1500mm</span><span id="braceGapVal" class="text-blue-600">2000mm</span><span>3000mm</span></div>
+                        </div>
                     </div>
 
                     <div id="checkplate-options" class="hidden space-y-3">
@@ -511,7 +516,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
         <img id="photo-modal-img" src="" alt="" class="max-w-[80vw] max-h-[85vh] rounded-xl shadow-2xl object-contain" onclick="event.stopPropagation()">
     </div>
 
-    <script src="drawing_base.js?v=4"></script>
+    <script src="drawing_base.js?v=5"></script>
     <script src="drawing_checkplate.js?v=4"></script>
     <script>
         const globalSettings = { drawing: { panel_width: 900, panel_min_width: 200, panel_gap: 4, door_width_default: 830, door_height_default: 1800 } };
