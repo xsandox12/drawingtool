@@ -460,6 +460,12 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                 </div>
             </div>
 
+            <!-- 기초조립대 파이프 절단 도면 카드 -->
+            <div id="base-cut-diagrams" class="hidden card p-5">
+                <h4 class="font-black text-slate-700 text-sm border-b border-slate-100 pb-3 mb-4">절단 도면</h4>
+                <div id="base-cut-diagrams-container" class="flex flex-wrap gap-4 items-start"></div>
+            </div>
+
             <!-- 체크판 원장 수량 요약 카드 -->
             <div id="checkplate-bom-card" class="hidden card px-6 py-4 border-l-4 border-l-emerald-500">
                 <div class="flex items-center gap-6">
@@ -516,7 +522,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
         <img id="photo-modal-img" src="" alt="" class="max-w-[80vw] max-h-[85vh] rounded-xl shadow-2xl object-contain" onclick="event.stopPropagation()">
     </div>
 
-    <script src="drawing_base.js?v=11"></script>
+    <script src="drawing_base.js?v=12"></script>
     <script src="drawing_checkplate.js?v=4"></script>
     <script>
         const globalSettings = { drawing: { panel_width: 900, panel_min_width: 200, panel_gap: 4, door_width_default: 830, door_height_default: 1800 } };
@@ -638,6 +644,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
             document.getElementById('storage-actions').classList.toggle('hidden', mode !== 'storage');
             document.getElementById('bom-stat-grid').classList.toggle('hidden', mode !== 'storage');
             document.getElementById('base-bom-card').classList.toggle('hidden', mode !== 'base');
+            document.getElementById('base-cut-diagrams').classList.toggle('hidden', mode !== 'base');
             document.getElementById('checkplate-options').classList.toggle('hidden', mode !== 'checkplate');
             document.getElementById('checkplate-bom-card').classList.toggle('hidden', mode !== 'checkplate');
             document.getElementById('checkplate-cut-diagrams').classList.toggle('hidden', mode !== 'checkplate');

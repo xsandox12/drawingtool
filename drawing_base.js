@@ -404,28 +404,29 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
     function optimizeStock(parts) {
         const stocks = [];
         const sorted = parts
-            .map(part => Math.round(part.length))
-            .filter(len => len > 0)
-            .sort((a, b) => b - a);
+            .map(part => ({ len: Math.round(part.length), label: part.label || '' }))
+            .filter(p => p.len > 0)
+            .sort((a, b) => b.len - a.len);
 
-        sorted.forEach(len => {
+        sorted.forEach(p => {
             let best = null;
             for (let i = 0; i < stocks.length; i++) {
-                if (stocks[i].remaining >= len && (!best || stocks[i].remaining < stocks[best].remaining)) {
+                if (stocks[i].remaining >= p.len && (!best || stocks[i].remaining < stocks[best].remaining)) {
                     best = i;
                 }
             }
-            if (best === null) stocks.push({ remaining: stockLen - len, parts: [len] });
+            if (best === null) stocks.push({ remaining: stockLen - p.len, parts: [p] });
             else {
-                stocks[best].remaining -= len;
-                stocks[best].parts.push(len);
+                stocks[best].remaining -= p.len;
+                stocks[best].parts.push(p);
             }
         });
 
         return {
             stockCount: stocks.length,
             waste: stocks.reduce((sum, stock) => sum + stock.remaining, 0),
-            cutCount: stocks.reduce((sum, stock) => sum + stock.parts.length, 0)
+            cutCount: stocks.reduce((sum, stock) => sum + stock.parts.length, 0),
+            stocks
         };
     }
 
@@ -551,7 +552,7 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
     drawColumns();
     drawDimensions();
 
-    const stockPlan = optimizeStock(finalMembers.map(member => ({ length: memberLength(member) })));
+    const stockPlan = optimizeStock(finalMembers.map(member => ({ length: memberLength(member), label: member.label })));
     const bomTbody = document.getElementById('base-bom-tbody');
     const bomTotal = document.getElementById('base-bom-total');
     if (bomTbody && bomTotal) {
@@ -579,4 +580,76 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
     const mainStat = document.getElementById('mainStat');
     if (mainCount) mainCount.innerText = (totalL / 1000).toFixed(1) + ' m';
     if (mainStat) mainStat.innerText = stockPlan.stockCount + ' pcs (6m)';
+
+    renderPipeCutDiagrams(stockPlan);
+}
+
+function renderPipeCutDiagrams(stockPlan) {
+    const container = document.getElementById('base-cut-diagrams-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const STOCK_LEN = 6000;
+    const MAX_W = 220;
+    const BAR_H = 36;
+
+    const TYPE_COLORS = {
+        'Horizontal Border': { fill: '#dbeafe', stroke: '#3b82f6', text: '#1d4ed8' },
+        'Vertical Border':   { fill: '#dbeafe', stroke: '#3b82f6', text: '#1d4ed8' },
+        'Horizontal Main':   { fill: '#dcfce7', stroke: '#22c55e', text: '#15803d' },
+        'Vertical Main':     { fill: '#dcfce7', stroke: '#22c55e', text: '#15803d' },
+        'Horizontal Brace':  { fill: '#fef3c7', stroke: '#f59e0b', text: '#92400e' },
+        'Vertical Brace':    { fill: '#fef3c7', stroke: '#f59e0b', text: '#92400e' },
+    };
+    const DEFAULT_COLOR = { fill: '#e0f2fe', stroke: '#0ea5e9', text: '#0369a1' };
+
+    // 동일한 파이프 조합의 원장 묶기
+    const groups = [];
+    stockPlan.stocks.forEach(stock => {
+        const key = stock.parts.map(p => p.len + ':' + p.label).sort().join('|');
+        const existing = groups.find(g => g.key === key);
+        if (existing) existing.count++;
+        else groups.push({ key, count: 1, parts: stock.parts, remaining: stock.remaining });
+    });
+
+    function makeBarSVG(parts, remaining) {
+        const sc = MAX_W / STOCK_LEN;
+        let html = `<rect width="${MAX_W}" height="${BAR_H}" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5" rx="3"/>`;
+        let cursor = 0;
+        parts.forEach((p, i) => {
+            const pw = Math.round(p.len * sc);
+            const px = Math.round(cursor * sc);
+            const color = TYPE_COLORS[p.label] || DEFAULT_COLOR;
+            html += `<rect x="${px + 1}" y="1" width="${Math.max(pw - 2, 1)}" height="${BAR_H - 2}" fill="${color.fill}" stroke="${color.stroke}" stroke-width="1" rx="2"/>`;
+            if (pw > 30) {
+                html += `<text x="${px + pw / 2}" y="${BAR_H / 2 + 1}" text-anchor="middle" dominant-baseline="middle" font-size="7.5" font-weight="bold" fill="${color.text}">${p.len}mm</text>`;
+            }
+            cursor += p.len;
+            if (i < parts.length - 1) {
+                const cx = Math.round(cursor * sc);
+                html += `<line x1="${cx}" y1="0" x2="${cx}" y2="${BAR_H}" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,3"/>`;
+            }
+        });
+        if (remaining > 0) {
+            const cx = Math.round((STOCK_LEN - remaining) * sc);
+            const ww = Math.round(remaining * sc);
+            html += `<line x1="${cx}" y1="0" x2="${cx}" y2="${BAR_H}" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,3"/>`;
+            if (ww > 22) {
+                html += `<text x="${cx + ww / 2}" y="${BAR_H / 2 + 1}" text-anchor="middle" dominant-baseline="middle" font-size="7" fill="#94a3b8">잔재 ${remaining}mm</text>`;
+            }
+        }
+        html += `<text x="${MAX_W / 2}" y="${BAR_H + 11}" text-anchor="middle" font-size="9" fill="#94a3b8">원장 ${STOCK_LEN}mm</text>`;
+        return `<svg width="${MAX_W}" height="${BAR_H + 14}" xmlns="http://www.w3.org/2000/svg">${html}</svg>`;
+    }
+
+    groups.forEach(g => {
+        const partsDesc = g.parts.map(p => p.len + 'mm').join(' + ');
+        const card = document.createElement('div');
+        card.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:5px;padding:6px 14px';
+        card.innerHTML =
+            `<p style="font-size:12px;font-weight:900;color:#3b82f6;margin:0">${g.count}개</p>` +
+            makeBarSVG(g.parts, g.remaining) +
+            `<p style="font-size:10px;color:#64748b;margin:0;text-align:center">${partsDesc}${g.remaining > 0 ? ' (잔재 ' + g.remaining + 'mm)' : ''}</p>`;
+        container.appendChild(card);
+    });
 }
