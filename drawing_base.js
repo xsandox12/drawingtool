@@ -38,7 +38,6 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
             'Horizontal Border': '가로 외곽재',
             'Horizontal Brace': '가로 보강재',
             'Horizontal Main': '가로 메인재',
-            'Pipe Splice': '이음재',
             'Vertical Border': '세로 외곽재',
             'Vertical Brace': '세로 보강재',
             'Vertical Main': '세로 메인재'
@@ -429,18 +428,10 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
             if (member.dir === 'h') {
                 for (let i = 0; i < splitCount; i++) {
                     result.push(createMember(member.label, member.x + i * pieceLen, member.y, pieceLen, member.height, 'h'));
-                    if (i < splitCount - 1) {
-                        const spliceX = member.x + (i + 1) * pieceLen;
-                        result.push(createMember('Pipe Splice', spliceX - member.height / 2, member.y, member.height, member.height, 'v'));
-                    }
                 }
             } else {
                 for (let i = 0; i < splitCount; i++) {
                     result.push(createMember(member.label, member.x, member.y + i * pieceLen, member.width, pieceLen, 'v'));
-                    if (i < splitCount - 1) {
-                        const spliceY = member.y + (i + 1) * pieceLen;
-                        result.push(createMember('Pipe Splice', member.x, spliceY - member.width / 2, member.width, member.width, 'h'));
-                    }
                 }
             }
         });
