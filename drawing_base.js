@@ -139,23 +139,26 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
         const innerH = Math.max(0, l - 50);
         const boxX = 25;
         const boxY = 25;
+        const rev = typeof floorReversed !== 'undefined' ? floorReversed : false;
 
         if (innerW <= 0 || innerH <= 0) return members;
 
         if (floorDir === 'h') {
             const xAnchors = getColumnAnchors(activeColumns, 'x', boxX, pipeW, Math.max(0, innerW - pipeW));
             const xPositions = getEvenPositions(innerW, pipeW, pipeGap, xAnchors);
+            // rev=false: 세로재가 가로재 사이에 들어감 / rev=true: 세로재가 full height
+            const vY = rev ? boxY : boxY + pipeH;
+            const vH = rev ? innerH : innerH - 2 * pipeH;
             xPositions.forEach((x, i) => {
                 const isEdge = i === 0 || i === xPositions.length - 1;
-                if (isEdge) {
-                    members.push(createMember('Vertical Border', boxX + x, boxY + pipeH, pipeW, innerH - 2 * pipeH, 'v'));
-                } else {
-                    members.push(createMember('Vertical Main', boxX + x, boxY + pipeH, pipeW, innerH - 2 * pipeH, 'v'));
-                }
+                members.push(createMember(isEdge ? 'Vertical Border' : 'Vertical Main', boxX + x, vY, pipeW, vH, 'v'));
             });
 
-            members.push(createMember('Horizontal Border', boxX, boxY, innerW, pipeH, 'h'));
-            members.push(createMember('Horizontal Border', boxX, boxY + innerH - pipeH, innerW, pipeH, 'h'));
+            // rev=false: 가로재 full width / rev=true: 가로재가 세로재 사이에 들어감
+            const hX = rev ? boxX + pipeW : boxX;
+            const hW = rev ? innerW - 2 * pipeW : innerW;
+            members.push(createMember('Horizontal Border', hX, boxY, hW, pipeH, 'h'));
+            members.push(createMember('Horizontal Border', hX, boxY + innerH - pipeH, hW, pipeH, 'h'));
 
             getEvenPositions(innerH, pipeH, braceGap).slice(1, -1).forEach(byOffset => {
                 const braceY = boxY + byOffset;
@@ -171,17 +174,19 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
         } else {
             const yAnchors = getColumnAnchors(activeColumns, 'y', boxY, pipeH, Math.max(0, innerH - pipeH));
             const yPositions = getEvenPositions(innerH, pipeH, pipeGap, yAnchors);
+            // rev=false: 가로재가 세로재 사이에 들어감 / rev=true: 가로재가 full width
+            const hX = rev ? boxX : boxX + pipeW;
+            const hW = rev ? innerW : innerW - 2 * pipeW;
             yPositions.forEach((y, i) => {
                 const isEdge = i === 0 || i === yPositions.length - 1;
-                if (isEdge) {
-                    members.push(createMember('Horizontal Border', boxX + pipeW, boxY + y, innerW - 2 * pipeW, pipeH, 'h'));
-                } else {
-                    members.push(createMember('Horizontal Main', boxX + pipeW, boxY + y, innerW - 2 * pipeW, pipeH, 'h'));
-                }
+                members.push(createMember(isEdge ? 'Horizontal Border' : 'Horizontal Main', hX, boxY + y, hW, pipeH, 'h'));
             });
 
-            members.push(createMember('Vertical Border', boxX, boxY, pipeW, innerH, 'v'));
-            members.push(createMember('Vertical Border', boxX + innerW - pipeW, boxY, pipeW, innerH, 'v'));
+            // rev=false: 세로재 full height / rev=true: 세로재가 가로재 사이에 들어감
+            const vY = rev ? boxY + pipeH : boxY;
+            const vH = rev ? innerH - 2 * pipeH : innerH;
+            members.push(createMember('Vertical Border', boxX, vY, pipeW, vH, 'v'));
+            members.push(createMember('Vertical Border', boxX + innerW - pipeW, vY, pipeW, vH, 'v'));
 
             getEvenPositions(innerW, pipeW, braceGap).slice(1, -1).forEach(bxOffset => {
                 const braceX = boxX + bxOffset;
