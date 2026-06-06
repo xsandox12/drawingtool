@@ -523,16 +523,10 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
 
     const activeColumns = clampColumns();
     const baseMembers = createBaseMembers(activeColumns);
-    const splitMembers = baseMembers.flatMap(member =>
-        member.label.includes('Border') ? [member] : splitMemberByColumns(member, activeColumns)
-    );
+    const splitMembers = baseMembers.flatMap(member => splitMemberByColumns(member, activeColumns));
     const connectedMembers = addColumnConnectors(splitMembers, activeColumns);
     const mergedMembers = mergeMembers(
-        connectedMembers.flatMap(member =>
-            member.label.includes('Border')
-                ? [member]
-                : splitMemberByColumns(member, activeColumns)
-        )
+        connectedMembers.flatMap(member => splitMemberByColumns(member, activeColumns))
     );
     const finalMembers = splitLongMembers(mergedMembers);
     const bomRows = [];
