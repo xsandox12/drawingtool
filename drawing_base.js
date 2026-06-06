@@ -7,8 +7,8 @@
 function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
     const pipeW = parseInt(document.getElementById('pipeW').value) || 50;
     const pipeH = parseInt(document.getElementById('pipeH').value) || 50;
-    const pipeGap = parseInt(document.getElementById('pipeGap').value) || 700;
-    const braceGap = parseInt(document.getElementById('braceGap').value) || 2000;
+    const pipeGap = parseInt(document.getElementById('pipeGap').value) || 800;
+    const braceGap = parseInt(document.getElementById('braceGap').value) || 3000;
     const zoom = typeof canvasZoom !== 'undefined' ? canvasZoom : 1;
     const stockLen = 6000;
 
