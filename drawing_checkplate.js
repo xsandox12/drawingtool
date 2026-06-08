@@ -121,19 +121,42 @@ function renderCheckPlateMode(w, l, t, ox, oy, scale, dw, dl, dt) {
     }
 
     function getCheckplateBlockers(roomW, roomL, thickness, gap, innerW, innerL) {
-        if (typeof columns === 'undefined') return [];
-        return columns
-            .map(col => {
+        const blockers = [];
+
+        if (typeof columns !== 'undefined') {
+            columns.forEach(col => {
                 const rect = getExpandedColumnRect(col, roomW, roomL, thickness, gap);
-                return {
+                const b = {
                     type: 'column-expanded',
                     x1: Math.max(0, Math.min(innerW, rect.x1 - thickness - gap)),
                     x2: Math.max(0, Math.min(innerW, rect.x2 - thickness - gap)),
                     y1: Math.max(0, Math.min(innerL, rect.y1 - thickness - gap)),
                     y2: Math.max(0, Math.min(innerL, rect.y2 - thickness - gap))
                 };
-            })
-            .filter(col => col.x2 - col.x1 > 0.5 && col.y2 - col.y1 > 0.5);
+                if (b.x2 - b.x1 > 0.5 && b.y2 - b.y1 > 0.5) blockers.push(b);
+            });
+        }
+
+        if (typeof partitions !== 'undefined') {
+            partitions.forEach(p => {
+                const pDir = p.dir || 'v';
+                const pThickness = p.thickness || thickness;
+                let b;
+                if (pDir === 'v') {
+                    // 체크판 내 x = partition.pos - gap, 양쪽 5mm 여유
+                    const x1 = Math.max(0, Math.min(innerW, p.pos - 2 * gap));
+                    const x2 = Math.max(0, Math.min(innerW, p.pos + pThickness));
+                    b = { type: 'partition', x1, x2, y1: 0, y2: innerL };
+                } else {
+                    const y1 = Math.max(0, Math.min(innerL, p.pos - 2 * gap));
+                    const y2 = Math.max(0, Math.min(innerL, p.pos + pThickness));
+                    b = { type: 'partition', x1: 0, x2: innerW, y1, y2 };
+                }
+                if (b.x2 - b.x1 > 0.5 && b.y2 - b.y1 > 0.5) blockers.push(b);
+            });
+        }
+
+        return blockers;
     }
 
     function getExpandedColumnRect(col, roomW, roomL, thickness, gap = 0) {
