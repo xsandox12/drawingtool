@@ -137,6 +137,180 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
     }
 }
 </style>
+
+<style id="print-styles">
+/* 화면에서는 인쇄 전용 요소 숨김 */
+.print-only { display: none; }
+
+@media print {
+    @page { size: A4 portrait; margin: 12mm 12mm 14mm; }
+
+    html, body {
+        background: #fff !important;
+        font-size: 10.5px !important;
+        line-height: 1.35 !important;
+        overflow: visible !important;
+    }
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* ── 화면 크롬 숨김 ───────────────────────────────── */
+    .w-80,                          /* 좌측 설정 사이드바 */
+    #right-panel,                   /* 메모 + 현장사진 패널 */
+    #drawing-loader,
+    #help-panel,
+    #selection-panel,
+    #photo-modal,
+    .print-hide,
+    .card.p-8 .absolute {           /* 캔버스 위 떠있는 배지/버튼 */
+        display: none !important;
+    }
+
+    /* ── 레이아웃 리셋: 단일 컬럼 ─────────────────────── */
+    body { padding: 0 !important; margin: 0 !important; }
+    body > .flex {
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        gap: 0 !important;
+    }
+    .flex-1 {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: none !important;
+    }
+    .flex-1.space-y-6 > * + * { margin-top: 7px !important; }
+
+    /* ── 인쇄 전용 요소 표시 ──────────────────────────── */
+    .print-only { display: block !important; }
+    #print-only-memo:not([data-has="1"]) { display: none !important; }
+
+    /* ── 인쇄 헤더(제목 블록) ─────────────────────────── */
+    #print-header {
+        border-bottom: 2px solid #1e293b !important;
+        padding-bottom: 8px !important;
+        margin-bottom: 10px !important;
+    }
+    #print-header .ph-top {
+        display: flex !important;
+        align-items: flex-end !important;
+        justify-content: space-between !important;
+    }
+    #print-header .ph-title {
+        font-size: 19px !important;
+        font-weight: 800 !important;
+        color: #0f172a !important;
+        letter-spacing: -0.01em !important;
+        line-height: 1.1 !important;
+    }
+    #print-header .ph-mode {
+        display: inline-block !important;
+        margin-top: 4px !important;
+        white-space: nowrap !important;
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        color: #1e40af !important;
+        background: #eff4ff !important;
+        border: 1px solid #c7d7fb !important;
+        border-radius: 4px !important;
+        padding: 2px 8px !important;
+    }
+    #print-header .ph-meta {
+        text-align: right !important;
+        font-size: 10px !important;
+        color: #64748b !important;
+        font-weight: 600 !important;
+        line-height: 1.5 !important;
+    }
+    #print-header .ph-meta .ph-brand {
+        font-size: 11px !important;
+        font-weight: 800 !important;
+        color: #334155 !important;
+    }
+    #print-header .ph-specs {
+        margin-top: 9px !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 6px 10px !important;
+    }
+    #print-header .ph-spec {
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        color: #334155 !important;
+        background: #f1f5f9 !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 5px !important;
+        padding: 4px 10px !important;
+        white-space: nowrap !important;
+    }
+    #print-header .ph-spec b {
+        color: #0f172a !important;
+        font-weight: 800 !important;
+        margin-left: 3px !important;
+    }
+
+    /* ── 캔버스(도면) 영역 ────────────────────────────── */
+    .flex-1 > .card.p-8 {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        background: #fff !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+    #storageCanvas {
+        width: 168mm !important;
+        height: auto !important;
+        max-width: 100% !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: none !important;
+        margin: 0 auto !important;
+        display: block !important;
+    }
+
+    /* ── BOM / 절단도면 카드 ──────────────────────────── */
+    #bom-stat-grid,
+    #base-bom-card,
+    #base-cut-diagrams,
+    #checkplate-bom-card,
+    #checkplate-cut-diagrams {
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+        background: #fff !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+    .overflow-x-auto { overflow: visible !important; }
+    #base-cut-diagrams-container,
+    #cut-diagrams-container { gap: 8px !important; }
+
+    /* ── 인쇄용 메모 ──────────────────────────────────── */
+    #print-only-memo {
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 6px !important;
+        padding: 9px 12px !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+    #print-only-memo .pm-label {
+        font-size: 9.5px !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.06em !important;
+        text-transform: uppercase !important;
+        color: #64748b !important;
+        margin-bottom: 5px !important;
+    }
+    #print-only-memo .pm-body {
+        font-size: 11px !important;
+        font-weight: 500 !important;
+        color: #1e293b !important;
+        white-space: pre-wrap !important;
+        line-height: 1.5 !important;
+    }
+}
+</style>
 </head>
 <body class="p-6">
     <div class="flex gap-8">
@@ -355,7 +529,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
         <!-- 메인 도면 영역 -->
         <div class="flex-1 space-y-6">
             <!-- 모드 탭 + 인쇄 버튼 -->
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between print-hide">
                 <div class="flex gap-1 bg-white border border-slate-200 rounded-lg p-1">
                     <button id="tab-storage" onclick="setMode('storage')" class="px-3 py-1.5 rounded-md text-[11px] font-black transition-all bg-blue-600 text-white">저장고 레이아웃</button>
                     <button id="tab-base" onclick="setMode('base')" class="px-3 py-1.5 rounded-md text-[11px] font-black transition-all text-slate-500 hover:bg-slate-100">기초조립대</button>
@@ -364,6 +538,21 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                 <button onclick="printDrawing()" class="flex items-center gap-2 bg-blue-600 text-white rounded-xl px-4 py-2 text-[11px] font-black hover:bg-blue-700 shadow-sm transition-all">
                     <i class="fa-solid fa-print"></i> 인쇄
                 </button>
+            </div>
+
+            <!-- 인쇄 전용 헤더 -->
+            <div id="print-header" class="print-only">
+                <div class="ph-top">
+                    <div>
+                        <div class="ph-title" id="ph-title">도면</div>
+                        <span class="ph-mode" id="ph-mode">저장고 레이아웃</span>
+                    </div>
+                    <div class="ph-meta">
+                        <div class="ph-brand">냉장/냉동 창고 도면</div>
+                        <div id="ph-date"></div>
+                    </div>
+                </div>
+                <div class="ph-specs" id="ph-specs"></div>
             </div>
             <div class="card p-8 flex flex-col items-center relative bg-white overflow-hidden">
                 <div class="absolute top-6 left-6 flex gap-2 z-10">
@@ -499,6 +688,12 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                 <div id="cut-diagrams-container" class="flex flex-wrap gap-4 items-start"></div>
             </div>
 
+            <!-- 인쇄 전용 메모 -->
+            <div id="print-only-memo" class="print-only">
+                <div class="pm-label">메모</div>
+                <div class="pm-body" id="pm-body"></div>
+            </div>
+
         </div>
 
         <!-- 우측 패널: 메모 + 현장사진 -->
@@ -523,7 +718,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
         <button onclick="closePhotoModal()" class="absolute top-4 right-4 w-9 h-9 bg-white rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100 shadow-lg">
             <i class="fa-solid fa-xmark text-base"></i>
         </button>
-        <img id="photo-modal-img" src="" alt="" class="max-w-[80vw] max-h-[85vh] rounded-xl shadow-2xl object-contain" onclick="event.stopPropagation()">
+        <img id="photo-modal-img" alt="" class="max-w-[80vw] max-h-[85vh] rounded-xl shadow-2xl object-contain" onclick="event.stopPropagation()">
     </div>
 
     <script src="drawing_base.js?v=15"></script>
@@ -546,6 +741,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
         let CANVAS_CY = CANVAS_H / 2;
 
         function updateCanvasSize() {
+            if (window.__printMode) return; // 인쇄 중에는 고배율 캔버스 유지
             const container = canvas.parentElement;
             const pad = 64; // p-8 양쪽 32px
             const available = container.clientWidth - pad;
@@ -3780,8 +3976,80 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
             if (drawingList) drawingList.classList.add('hidden');
         }
 
+        // ── 인쇄: 헤더 채우기 + 고배율 재렌더 ──────────────────────
+        const PRINT_MODE_LABELS = { storage: '저장고 레이아웃', base: '기초조립대', checkplate: '바닥 체크판' };
+        let _printSaved = null;
+
+        function preparePrintHeader() {
+            const nm = (document.getElementById('drawingName').value || '').trim() || '도면';
+            document.getElementById('ph-title').textContent = nm;
+            document.getElementById('ph-mode').textContent = PRINT_MODE_LABELS[currentMode] || '도면';
+            document.getElementById('ph-date').textContent =
+                new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            const w = parseInt(widthIn.value) || 0;
+            const l = parseInt(lengthIn.value) || 0;
+            const h = parseInt(heightIn.value) || 0;
+            const t = (document.getElementById('thickness') || {}).value || '';
+            const area = (document.getElementById('areaDisplay').textContent || '').trim();
+            const fmt = (n) => n.toLocaleString('en-US');
+
+            const specs = [
+                ['가로 (W)', fmt(w) + ' mm'],
+                ['세로 (L)', fmt(l) + ' mm'],
+                ['높이 (H)', fmt(h) + ' mm'],
+            ];
+            if (t) specs.push(['판넬 두께', t + 'T']);
+            if (area && area !== '0평') specs.push(['면적', area]);
+
+            document.getElementById('ph-specs').innerHTML =
+                specs.map(([k, v]) => `<span class="ph-spec">${k}<b>${v}</b></span>`).join('');
+
+            const memo = (document.getElementById('memo-text').value || '').trim();
+            const memoBox = document.getElementById('print-only-memo');
+            if (memo) {
+                document.getElementById('pm-body').textContent = memo;
+                memoBox.setAttribute('data-has', '1');
+            } else {
+                memoBox.removeAttribute('data-has');
+            }
+        }
+
+        function enterPrintRender() {
+            _printSaved = {
+                w: CANVAS_W, h: CANVAS_H, cx: CANVAS_CX, cy: CANVAS_CY,
+                zoom: canvasZoom, px: canvasPanX, py: canvasPanY
+            };
+            window.__printMode = true;
+            // 2배 해상도로 선명하게 + 줌/팬 초기화하여 항상 중앙 정렬
+            CANVAS_W = 1560; CANVAS_H = 1320;
+            CANVAS_CX = CANVAS_W / 2; CANVAS_CY = CANVAS_H / 2;
+            canvasZoom = 1; canvasPanX = 0; canvasPanY = 0;
+            try { updateDrawing(); } catch (e) {}
+        }
+
+        function exitPrintRender() {
+            if (!_printSaved) return;
+            window.__printMode = false;
+            canvasZoom = _printSaved.zoom; canvasPanX = _printSaved.px; canvasPanY = _printSaved.py;
+            CANVAS_W = _printSaved.w; CANVAS_H = _printSaved.h;
+            CANVAS_CX = _printSaved.cx; CANVAS_CY = _printSaved.cy;
+            _printSaved = null;
+            try { updateDrawing(); } catch (e) {}
+        }
+
+        window.addEventListener('beforeprint', () => { preparePrintHeader(); enterPrintRender(); });
+        window.addEventListener('afterprint', exitPrintRender);
+
         function printDrawing() {
-            window.print();
+            preparePrintHeader();
+            enterPrintRender();
+            // 캔버스 재렌더가 반영된 뒤 인쇄 다이얼로그 호출
+            setTimeout(function () {
+                window.print();
+                // Safari 등 afterprint 미지원 환경 대비 복원
+                setTimeout(exitPrintRender, 800);
+            }, 60);
         }
 
         function toggleHelpPanel(force) {
