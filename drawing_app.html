@@ -164,7 +164,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
     #selection-panel,
     #photo-modal,
     .print-hide,
-    .card.p-8 .absolute {           /* 캔버스 위 떠있는 배지/버튼 */
+    .card.p-4 .absolute {           /* 캔버스 위 떠있는 배지/버튼 */
         display: none !important;
     }
 
@@ -252,7 +252,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
     }
 
     /* ── 캔버스(도면) 영역 ────────────────────────────── */
-    .flex-1 > .card.p-8 {
+    .flex-1 > .card.p-4 {
         border: none !important;
         box-shadow: none !important;
         padding: 0 !important;
@@ -261,7 +261,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
         break-inside: avoid !important;
     }
     #storageCanvas {
-        width: 168mm !important;
+        width: 100% !important;
         height: auto !important;
         max-width: 100% !important;
         border: 1px solid #e2e8f0 !important;
@@ -554,7 +554,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                 </div>
                 <div class="ph-specs" id="ph-specs"></div>
             </div>
-            <div class="card p-8 flex flex-col items-center relative bg-white overflow-hidden">
+            <div class="card p-4 flex flex-col items-center relative bg-white overflow-hidden">
                 <div class="absolute top-6 left-6 flex gap-2 z-10">
                     <span id="areaDisplay" class="bg-blue-600 text-white text-[10px] font-black px-4 py-2 rounded-full shadow-lg italic tracking-tight">0평</span>
                     <span id="modeDisplay" class="bg-slate-800 text-white text-[10px] font-black px-4 py-2 rounded-full shadow-lg">저장고 레이아웃</span>
@@ -736,22 +736,17 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
         let isPanning = false;
         let panStart = null;
         let CANVAS_W = 780;
-        let CANVAS_H = 660;
+        let CANVAS_H = 520;
         let CANVAS_CX = CANVAS_W / 2;
         let CANVAS_CY = CANVAS_H / 2;
 
         function updateCanvasSize() {
             if (window.__printMode) return; // 인쇄 중에는 고배율 캔버스 유지
             const container = canvas.parentElement;
-            const pad = 64; // p-8 양쪽 32px
+            const pad = 32; // p-4 양쪽 16px
             const available = container.clientWidth - pad;
-            if (available >= 780) {
-                CANVAS_W = 780;
-                CANVAS_H = 660;
-            } else {
-                CANVAS_W = Math.max(360, available);
-                CANVAS_H = Math.round(CANVAS_W * (660 / 780));
-            }
+            CANVAS_W = Math.min(780, Math.max(360, available));
+            CANVAS_H = Math.round(CANVAS_W * (520 / 780));
             CANVAS_CX = CANVAS_W / 2;
             CANVAS_CY = CANVAS_H / 2;
         }
@@ -4022,9 +4017,9 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
             };
             window.__printMode = true;
             // 2배 해상도로 선명하게 + 줌/팬 초기화하여 항상 중앙 정렬
-            CANVAS_W = 1560; CANVAS_H = 1320;
+            CANVAS_W = 1560; CANVAS_H = 1040;
             CANVAS_CX = CANVAS_W / 2; CANVAS_CY = CANVAS_H / 2;
-            canvasZoom = 1; canvasPanX = 0; canvasPanY = 0;
+            canvasZoom = 1.4; canvasPanX = 0; canvasPanY = 0;
             try { updateDrawing(); } catch (e) {}
         }
 
