@@ -757,6 +757,10 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
             return Math.min(maxW / w, maxH / l);
         }
         let panelSashRecords = [];
+        let panelLabelHitAreas = [];
+        // 사용자가 직접 입력한 판넬 폭 (segmentId → { widths: [...] })
+        // 세그먼트 길이/판넬 수가 바뀌면 자동 무효화됨
+        let panelWidthOverrides = {};
         // 코너 소유: 'h'=가로벽(상/하) 우선, 'v'=세로벽(좌/우) 우선
         let cornerConfig = { TL: 'h', TR: 'h', BL: 'h', BR: 'h' };
 
@@ -1061,6 +1065,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
             const w = parseInt(widthIn.value) || 0; const l = parseInt(lengthIn.value) || 0;
             const h = parseInt(heightIn.value) || 0; const t = parseInt(thicknessIn.value) || 100;
             canvas.width = CANVAS_W; canvas.height = CANVAS_H;
+            panelLabelHitAreas = [];
             if (w <= 0 || l <= 0 || h <= 0 || t <= 0) {
                 panelSashRecords = [];
                 window.panelSashRecords = panelSashRecords;
@@ -1511,6 +1516,16 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                 const _pushPanelSpan = (spanLen, align, startSash, endSash) => {
                     const layout = getLayout(spanLen, align);
                     const segmentId = `${wallIdx}-${_wallSegmentSeq++}`;
+                    // 사용자 입력 폭 오버라이드 적용 (판넬 수·합계 일치 시에만)
+                    const _ov = panelWidthOverrides[segmentId];
+                    if (_ov) {
+                        const _sum = arr => arr.reduce((a, b) => a + b, 0);
+                        if (_ov.widths.length === layout.length && Math.abs(_sum(_ov.widths) - _sum(layout)) < 1) {
+                            for (let i = 0; i < layout.length; i++) layout[i] = _ov.widths[i];
+                        } else {
+                            delete panelWidthOverrides[segmentId];
+                        }
+                    }
                     layout.forEach((p, panelIdx) => mmLayout.push({
                         w: p,
                         isD: false,
@@ -1901,6 +1916,19 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                             sy: oy_w + localCx * sin + labelLocalY * cos,
                             text: `${Math.round(displayW)}`
                         });
+                        // 같은 세그먼트에 판넬이 2장 이상일 때만 편집 가능 (다른 판넬이 차이를 흡수해야 함)
+                        if (p.segmentPanelCount >= 2) {
+                            const _sp = mmLayout.filter(item => !item.isD && !item.isC && item.segmentId === p.segmentId);
+                            panelLabelHitAreas.push({
+                                type: 'wallpanel',
+                                mx: ox_w + localCx * cos - labelLocalY * sin,
+                                my: oy_w + localCx * sin + labelLocalY * cos,
+                                value: Math.round(displayW),
+                                segmentId: p.segmentId,
+                                segIdx: p.segmentPanelIdx,
+                                segWidths: _sp.map(item => item.w)
+                            });
+                        }
 
                         // 다음이 판넬·기둥gap이면 gap 추가, 도어·끝이면 추가 안 함
                         panelSashRecords.push({
@@ -2690,6 +2718,8 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
             ctx.textAlign = 'center'; ctx.textBaseline = 'top';
             ctx.fillText(`L = ${l.toLocaleString()} mm`, 0, 0);
             ctx.restore();
+            panelLabelHitAreas.push({ type: 'dim', useRaw: true, rx: (sx1 + sx2) / 2, ry: dimY + 3, value: w, dimType: 'W' });
+            panelLabelHitAreas.push({ type: 'dim', useRaw: true, rx: dimX + 4, ry: (sy1 + sy2) / 2, value: l, dimType: 'L' });
 
             columns.forEach(col => {
                 const cx = ox + col.x * scale;
@@ -2939,6 +2969,22 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
             const dw = w * scale; const dl = l * scale; const dt = t * scale;
             const ox = (CANVAS_W - dw) / 2 - 20; const oy = (CANVAS_H - dl) / 2 - 15;
 
+            // ── 판넬 라벨 클릭 (저장고 모드) ────────────────────────────
+            if (currentMode === 'storage') {
+                for (const area of panelLabelHitAreas) {
+                    let hit = false;
+                    if (area.useRaw) {
+                        const dx = rawPoint.x - area.rx, dy = rawPoint.y - area.ry;
+                        hit = Math.sqrt(dx * dx + dy * dy) <= 18;
+                    } else {
+                        const dx = mx - area.mx, dy = my - area.my;
+                        hit = Math.sqrt(dx * dx + dy * dy) <= 16 / canvasZoom;
+                    }
+                    // preventDefault: mousedown 기본 포커스 이동이 input을 즉시 blur시키는 것 방지
+                    if (hit) { e.preventDefault(); showPanelLabelEditor(e, area); return; }
+                }
+            }
+
             // ── 코너 클릭 감지 (저장고 모드 전용) ──────────────────────
             if (currentMode === 'storage') {
                 // 벽 코너 클릭
@@ -3084,7 +3130,16 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                     !isRoomCornerLockedByColumn(c.name, w_c, l_c) &&
                     Math.sqrt((mx - c.cx) ** 2 + (my - c.cy) ** 2) < cr
                 );
-                canvas.style.cursor = over ? 'pointer' : 'grab';
+                const rawPoint_m = getCanvasRawPoint(e);
+                const labelHover = panelLabelHitAreas.some(area => {
+                    if (area.useRaw) {
+                        const dx = rawPoint_m.x - area.rx, dy = rawPoint_m.y - area.ry;
+                        return Math.sqrt(dx * dx + dy * dy) <= 18;
+                    }
+                    const dx = mx - area.mx, dy = my - area.my;
+                    return Math.sqrt(dx * dx + dy * dy) <= 16 / canvasZoom;
+                });
+                canvas.style.cursor = (over || labelHover) ? 'pointer' : 'grab';
             }
             // ─────────────────────────────────────────────────────────────
             if(!isDragging || !dragTarget) return;
@@ -4253,6 +4308,57 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
             document.getElementById('photo-modal-img').src = '';
         }
 
+        function showPanelLabelEditor(e, area) {
+            const rect = canvas.getBoundingClientRect();
+            let px, py;
+            if (area.useRaw) {
+                px = rect.left + area.rx;
+                py = rect.top + area.ry;
+            } else {
+                px = rect.left + toViewportX(area.mx);
+                py = rect.top + toViewportY(area.my);
+            }
+            const editor = document.getElementById('panel-label-editor');
+            const input = document.getElementById('panel-label-input');
+            input._editArea = area;
+            input.value = area.value;
+            editor.style.left = (px - 44 + window.scrollX) + 'px';
+            editor.style.top  = (py - 14 + window.scrollY) + 'px';
+            editor.style.display = 'block';
+            // mousedown 처리 중 즉시 focus하면 기본 포커스 이동과 충돌 — 다음 프레임으로 미룸
+            setTimeout(() => { input.focus(); input.select(); }, 0);
+        }
+
+        function hidePanelLabelEditor() {
+            document.getElementById('panel-label-editor').style.display = 'none';
+        }
+
+        function commitPanelLabelEdit() {
+            const editor = document.getElementById('panel-label-editor');
+            if (editor.style.display === 'none') return;
+            const input = document.getElementById('panel-label-input');
+            const area = input._editArea;
+            if (!area) { hidePanelLabelEditor(); return; }
+            const val = parseInt(input.value);
+            if (area.type === 'wallpanel') {
+                // 방 크기는 고정 — 같은 세그먼트의 반대쪽 끝 판넬이 차이를 흡수
+                const delta = val - area.value;
+                if (isNaN(val) || delta === 0) { hidePanelLabelEditor(); return; }
+                const widths = area.segWidths.slice();
+                const i = area.segIdx;
+                const j = (i === widths.length - 1) ? 0 : widths.length - 1;
+                widths[i] += delta;
+                widths[j] -= delta;
+                if (widths[i] < 200 || widths[i] > 1000 || widths[j] < 200 || widths[j] > 1000) { hidePanelLabelEditor(); return; }
+                panelWidthOverrides[area.segmentId] = { widths };
+            } else if (area.type === 'dim') {
+                if (isNaN(val) || val < 500 || val > 100000) { hidePanelLabelEditor(); return; }
+                if (area.dimType === 'W') widthIn.value = val; else lengthIn.value = val;
+            }
+            hidePanelLabelEditor();
+            updateDrawing();
+        }
+
         function renderPhotoList() {
             const container = document.getElementById('photo-list');
             if (!container) return;
@@ -4265,5 +4371,12 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
             `).join('');
         }
     </script>
+
+    <div id="panel-label-editor" style="display:none; position:absolute; z-index:2000; pointer-events:auto;">
+        <input id="panel-label-input" type="number"
+            style="width:88px; text-align:center; font-size:13px; font-weight:bold; padding:4px 6px; border:2px solid #3b82f6; border-radius:5px; outline:none; box-shadow:0 2px 8px rgba(0,0,0,0.18); background:#fff;"
+            onkeydown="if(event.key==='Enter'){commitPanelLabelEdit();}else if(event.key==='Escape'){hidePanelLabelEditor();}"
+            onblur="commitPanelLabelEdit();">
+    </div>
 </body>
 </html>
