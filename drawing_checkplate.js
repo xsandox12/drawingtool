@@ -67,8 +67,9 @@ function renderCheckPlateMode(w, l, t, ox, oy, scale, dw, dl, dt) {
             ? Math.ceil(sourceCounts.cut_w / Math.max(1, Math.floor(sw / rem_w))) : 0;
         const adjustedCutLSheets = (rem_l > 0 && sourceCounts.cut_l > 0)
             ? Math.ceil(sourceCounts.cut_l / Math.max(1, Math.floor(sl / rem_l))) : 0;
-        const adjustedCornerSheets = sourceCounts.cut_corner > 0 && adjustedCutWSheets === 0 && adjustedCutLSheets === 0
-            ? 1 : 0;
+        const cornerFitsInCutL = rem_l > 0 && adjustedCutLSheets > 0 && 2 * rem_l <= sl;
+        const cornerFitsInCutW = rem_w > 0 && adjustedCutWSheets > 0 && 2 * rem_w <= sw;
+        const adjustedCornerSheets = sourceCounts.cut_corner > 0 && !cornerFitsInCutL && !cornerFitsInCutW ? 1 : 0;
         const adjustedTotalSheets = adjustedFullSheets + adjustedCutWSheets + adjustedCutLSheets + adjustedCornerSheets;
         const bom = buildBomFromPieces(pieces, adjustedTotalSheets);
 
@@ -501,9 +502,11 @@ function renderCutDiagrams(layout) {
     container.innerHTML = '';
 
     const { sw, sl, rem_w, rem_l, full_sheets, cut_w_sheets, cut_l_sheets, corner_sheets } = layout;
-    const hasCorner      = rem_w > 0 && rem_l > 0;
-    const cornerFromCutL = hasCorner && corner_sheets === 0 && cut_l_sheets > 0;
-    const cornerFromCutW = hasCorner && corner_sheets === 0 && cut_l_sheets === 0 && cut_w_sheets > 0;
+    const hasCorner        = rem_w > 0 && rem_l > 0;
+    const cornerFitsInCutL = cut_l_sheets > 0 && 2 * rem_l <= sl;
+    const cornerFitsInCutW = cut_w_sheets > 0 && 2 * rem_w <= sw;
+    const cornerFromCutL   = hasCorner && corner_sheets === 0 && cornerFitsInCutL;
+    const cornerFromCutW   = hasCorner && corner_sheets === 0 && !cornerFitsInCutL && cornerFitsInCutW;
 
     const MAX_W = 120, MAX_H = 180;
     const WASTE_FILL = '#e2e8f0';
@@ -592,13 +595,15 @@ function renderCutDiagrams(layout) {
         if (cornerFromCutW) {
             const cutLines = [{dir:'v', pos:rem_w}];
             if (rem_l < sl) cutLines.push({dir:'h', pos:rem_l, from:rem_w, to:sw});
+            if (sw > 2*rem_w) cutLines.push({dir:'v', pos:2*rem_w, from:0, to:rem_l});
             container.innerHTML += makeCard(
                 1,
                 makeSheetSVG(
                     [
-                        {x:0,     y:0,     w:rem_w,    h:sl,        fill:'#dbeafe', stroke:'#3b82f6', textColor:'#1d4ed8'},
-                        {x:rem_w, y:0,     w:sw-rem_w, h:rem_l,     fill:'#fef3c7', stroke:'#f59e0b', textColor:'#92400e'},
-                        {x:rem_w, y:rem_l, w:sw-rem_w, h:sl-rem_l,  fill:WASTE_FILL, stroke:WASTE_STROKE, textColor:'#94a3b8'}
+                        {x:0,       y:0,     w:rem_w,      h:sl,        fill:'#dbeafe', stroke:'#3b82f6', textColor:'#1d4ed8'},
+                        {x:rem_w,   y:0,     w:rem_w,      h:rem_l,     fill:'#fef3c7', stroke:'#f59e0b', textColor:'#92400e'},
+                        {x:2*rem_w, y:0,     w:sw-2*rem_w, h:rem_l,     fill:WASTE_FILL, stroke:WASTE_STROKE, textColor:'#94a3b8'},
+                        {x:rem_w,   y:rem_l, w:sw-rem_w,   h:sl-rem_l,  fill:WASTE_FILL, stroke:WASTE_STROKE, textColor:'#94a3b8'}
                     ],
                     cutLines
                 ),
@@ -626,14 +631,16 @@ function renderCutDiagrams(layout) {
         // 가로 쪽판에서 코너도 함께 잘라내는 경우
         if (cornerFromCutL) {
             const cutLines = [{dir:'h', pos:rem_l}];
-            if (rem_w < sw) cutLines.push({dir:'v', pos:rem_w, from:rem_l, to:sl});
+            if (rem_w < sw) cutLines.push({dir:'v', pos:rem_w, from:rem_l, to:2*rem_l});
+            if (sl > 2*rem_l) cutLines.push({dir:'h', pos:2*rem_l});
             container.innerHTML += makeCard(
                 1,
                 makeSheetSVG(
                     [
-                        {x:0,     y:0,     w:sw,        h:rem_l,     fill:'#dcfce7', stroke:'#22c55e', textColor:'#15803d'},
-                        {x:0,     y:rem_l, w:rem_w,     h:sl-rem_l,  fill:'#fef3c7', stroke:'#f59e0b', textColor:'#92400e'},
-                        {x:rem_w, y:rem_l, w:sw-rem_w,  h:sl-rem_l,  fill:WASTE_FILL, stroke:WASTE_STROKE, textColor:'#94a3b8'}
+                        {x:0,     y:0,       w:sw,       h:rem_l,      fill:'#dcfce7', stroke:'#22c55e', textColor:'#15803d'},
+                        {x:0,     y:rem_l,   w:rem_w,    h:rem_l,      fill:'#fef3c7', stroke:'#f59e0b', textColor:'#92400e'},
+                        {x:rem_w, y:rem_l,   w:sw-rem_w, h:rem_l,      fill:WASTE_FILL, stroke:WASTE_STROKE, textColor:'#94a3b8'},
+                        {x:0,     y:2*rem_l, w:sw,       h:sl-2*rem_l, fill:WASTE_FILL, stroke:WASTE_STROKE, textColor:'#94a3b8'}
                     ],
                     cutLines
                 ),
