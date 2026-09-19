@@ -931,7 +931,10 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
         }
 
         function getDoorSashState(door) {
-            const state = { startSash: '+', endSash: '-' };
+            // 슬라이딩 도어는 항상 +/+ (칸막이 끝·벽 코너에 붙은 쪽만 예외)
+            const state = door.type === 'sliding'
+                ? { startSash: '+', endSash: '+' }
+                : { startSash: '+', endSash: '-' };
             const partition = getPartitionByDoor(door);
             if (partition) {
                 const maxPos = Math.max(0, getPartitionSpanLength(partition) - getDoorFullWidth(door) - 4);
@@ -1221,17 +1224,23 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                 return runs;
             }
 
-            function getPartitionPanelSash(run, idx, runs, totalLen) {
+            function getPartitionPanelSash(run, idx, runs, totalLen, partition) {
                 const startsAtPartitionEnd = run.segmentStart <= 0.5;
                 const endsAtPartitionEnd = run.segmentEnd >= totalLen - 0.5;
                 const reverseSegment = !startsAtPartitionEnd && endsAtPartitionEnd;
+                // 슬라이딩 도어(+/+)와 맞닿는 면은 항상 -
+                const slidingDoors = doors.filter(d => d.partitionId === partition.id && d.type === 'sliding');
+                const startFacesSliding = slidingDoors.some(d => Math.abs(d.pos + getDoorFullWidth(d) - run.start) <= gap + 1);
+                const endFacesSliding = slidingDoors.some(d => Math.abs(d.pos - (run.start + run.length)) <= gap + 1);
+                const startFixedMinus = run.start <= 0.5 || startFacesSliding;
+                const endFixedMinus = run.start + run.length >= totalLen - 0.5 || endFacesSliding;
                 let startSash = reverseSegment ? '+' : '-';
                 let endSash = reverseSegment ? '-' : '+';
-                if (run.start <= 0.5) startSash = '-';
-                if (run.start + run.length >= totalLen - 0.5) endSash = '-';
-                if (Math.round(run.length) === globalSettings.drawing.panel_width && startSash === endSash) {
-                    if (run.start <= 0.5) endSash = '+';
-                    else if (run.start + run.length >= totalLen - 0.5) startSash = '+';
+                if (startFixedMinus) startSash = '-';
+                if (endFixedMinus) endSash = '-';
+                if (Math.round(run.length) === globalSettings.drawing.panel_width && startSash === endSash && !(startFixedMinus && endFixedMinus)) {
+                    if (startFixedMinus) endSash = '+';
+                    else if (endFixedMinus) startSash = '+';
                     else {
                         startSash = reverseSegment ? '+' : '-';
                         endSash = reverseSegment ? '-' : '+';
@@ -1250,11 +1259,13 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                 const nextIdx = runs.findIndex(run => Math.abs(run.start - doorEnd) <= gap + 1);
                 const opposite = (v) => v === '+' ? '-' : '+';
 
-                if (prevIdx >= 0) {
-                    sash.startSash = opposite(getPartitionPanelSash(runs[prevIdx], prevIdx, runs, totalLen).endSash);
-                }
-                if (nextIdx >= 0) {
-                    sash.endSash = opposite(getPartitionPanelSash(runs[nextIdx], nextIdx, runs, totalLen).startSash);
+                if (door.type !== 'sliding') {
+                    if (prevIdx >= 0) {
+                        sash.startSash = opposite(getPartitionPanelSash(runs[prevIdx], prevIdx, runs, totalLen, partition).endSash);
+                    }
+                    if (nextIdx >= 0) {
+                        sash.endSash = opposite(getPartitionPanelSash(runs[nextIdx], nextIdx, runs, totalLen, partition).startSash);
+                    }
                 }
                 if (doorStart <= 0.5) sash.startSash = '-';
                 if (doorEnd >= totalLen - 0.5) sash.endSash = '-';
@@ -1677,6 +1688,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                     const nextItem = mmLayout[idx + 1];
                     const prevItem = mmLayout[idx - 1];
                     const rightFacesSlidingDoor = nextItem && nextItem.isD && nextItem.door && nextItem.door.type === 'sliding';
+                    const leftFacesSlidingDoor = prevItem && prevItem.isD && prevItem.door && prevItem.door.type === 'sliding';
                     const rightFacesColumn = nextItem && nextItem.isC;
                     const leftFacesColumn  = prevItem && prevItem.isC;
                     const isStartCornerPanel = idx === _firstNonGapIdx && _startCornerOwned && !_suppressStartCorner;
@@ -1702,9 +1714,11 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                     if (rightOwnsColumnCorner) rightPlus = false;
                     if (leftNeighborNeedsPlus) leftPlus = true;
                     if (rightNeighborNeedsPlus) rightPlus = true;
-                    if (rightFacesSlidingDoor && !rightNeighborNeedsPlus && !isEndCornerPanel) rightPlus = false;
                     if (segmentStartsAtMate && item.segmentPanelIdx === 0) leftPlus = true;
                     if (segmentEndsAtMate && item.segmentPanelIdx === item.segmentPanelCount - 1) rightPlus = true;
+                    // 슬라이딩 도어(+/+)와 맞닿는 면은 항상 -
+                    if (leftFacesSlidingDoor) leftPlus = false;
+                    if (rightFacesSlidingDoor) rightPlus = false;
 
                     let leftSash = (isStartCornerPanel || leftOwnsColumnCorner) ? 'corner' : (leftPlus ? '+' : '-');
                     let rightSash = (isEndCornerPanel || rightOwnsColumnCorner) ? 'corner' : (rightPlus ? '+' : '-');
@@ -1713,9 +1727,16 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                         Math.round(displayW) === _pMax &&
                         leftSash !== 'corner' &&
                         rightSash !== 'corner' &&
-                        leftSash === rightSash
+                        leftSash === rightSash &&
+                        !(leftFacesSlidingDoor && rightFacesSlidingDoor)
                     ) {
-                        if (runReversed) {
+                        if (leftFacesSlidingDoor) {
+                            leftSash = '-';
+                            rightSash = '+';
+                        } else if (rightFacesSlidingDoor) {
+                            leftSash = '+';
+                            rightSash = '-';
+                        } else if (runReversed) {
                             leftSash = '+';
                             rightSash = '-';
                         } else {
@@ -1734,8 +1755,10 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                     const sash = getDoorSashState(door);
                     const prevSash = panelSashByIdx[idx - 1];
                     const nextSash = panelSashByIdx[idx + 1];
-                    if (prevSash && prevSash.rightSash !== 'corner') sash.startSash = _oppositeSash(prevSash.rightSash);
-                    if (nextSash && nextSash.leftSash !== 'corner') sash.endSash = _oppositeSash(nextSash.leftSash);
+                    if (door.type !== 'sliding') {
+                        if (prevSash && prevSash.rightSash !== 'corner') sash.startSash = _oppositeSash(prevSash.rightSash);
+                        if (nextSash && nextSash.leftSash !== 'corner') sash.endSash = _oppositeSash(nextSash.leftSash);
+                    }
                     if (idx === _firstNonGapIdx && _wallStartCornerOwned) sash.startSash = 'corner';
                     if (idx === _lastNonGapIdx && _wallEndCornerOwned) sash.endSash = 'corner';
                     return sash;
@@ -2098,7 +2121,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
 
                 pLayout.forEach((pRun, pIdx) => {
                     const pLen = pRun.length;
-                    const pSash = getPartitionPanelSash(pRun, pIdx, pLayout, partitionTotalLen);
+                    const pSash = getPartitionPanelSash(pRun, pIdx, pLayout, partitionTotalLen, p);
                     partitionBOMRows.push({ width: Math.round(pLen), height: _partitionPanelH, leftSash: pSash.startSash, rightSash: pSash.endSash });
                     let rx, ry, rw, rh;
                     if (pDir === 'v') {
