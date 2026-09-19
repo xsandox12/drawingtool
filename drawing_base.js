@@ -45,9 +45,9 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
         return labels[label] || label;
     }
 
-    function drawLabel(cx, cy, text, color = '#475569') {
+    function drawLabel(cx, cy, text, color = '#475569', rotate = 0) {
         if (typeof drawFixedLabel === 'function') {
-            drawFixedLabel(cx, cy, text, { color, bg: 'rgba(255,255,255,0.88)' });
+            drawFixedLabel(cx, cy, text, { color, bg: 'rgba(255,255,255,0.88)', rotate });
             return;
         }
         ctx.font = 'bold 9px sans-serif';
@@ -60,20 +60,49 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
         ctx.fillText(text, cx, cy);
     }
 
-    function drawPipe(rx, ry, rw, rh, labelTxt) {
+    function drawPipe(rx, ry, rw, rh) {
         if (rw <= 0 || rh <= 0) return;
         ctx.fillStyle = '#f1f5f9';
         ctx.fillRect(rx, ry, rw, rh);
         ctx.strokeStyle = '#334155';
         ctx.lineWidth = 1.5;
         ctx.strokeRect(rx, ry, rw, rh);
+    }
 
-        if (!labelTxt) return;
+    // 길이 라벨 위치: 교차·접합하는 직각 부재를 피해 가장 긴 빈 구간의 가운데 (mm 좌표)
+    function getPipeLabelCenter(member, members) {
+        const vertical = member.dir === 'v';
+        const a1 = vertical ? member.y : member.x;
+        const a2 = a1 + (vertical ? member.height : member.width);
+        const c1 = vertical ? member.x : member.y;
+        const c2 = c1 + (vertical ? member.width : member.height);
+        const cuts = members
+            .filter(other => other !== member && other.dir !== member.dir)
+            .map(other => {
+                const oc1 = vertical ? other.x : other.y;
+                const oc2 = oc1 + (vertical ? other.width : other.height);
+                if (oc2 < c1 - 1 || oc1 > c2 + 1) return null;
+                const oa1 = vertical ? other.y : other.x;
+                const oa2 = oa1 + (vertical ? other.height : other.width);
+                if (oa2 <= a1 || oa1 >= a2) return null;
+                return { start: oa1, end: oa2 };
+            })
+            .filter(Boolean);
+        const best = subtractCuts(a1, a2, cuts)
+            .reduce((acc, seg) => (!acc || seg.end - seg.start > acc.end - acc.start) ? seg : acc, null)
+            || { start: a1, end: a2 };
+        const mid = (best.start + best.end) / 2;
+        return vertical ? { x: (c1 + c2) / 2, y: mid } : { x: mid, y: (c1 + c2) / 2 };
+    }
+
+    // 길이 라벨: 부재 방향으로 회전해서 표시 (부재가 글자보다 길 때만)
+    function drawPipeLabel(member, members) {
+        const labelTxt = Math.round(memberLength(member)) + 'mm';
         ctx.font = 'bold 9px sans-serif';
         const tw = ctx.measureText(labelTxt).width;
-        if (rw * zoom > tw + 6 && rh * zoom > 10) {
-            drawLabel(rx + rw / 2, ry + rh / 2, labelTxt);
-        }
+        if (memberLength(member) * scale * zoom <= tw + 6) return;
+        const center = getPipeLabelCenter(member, members);
+        drawLabel(ox + center.x * scale, oy + center.y * scale, labelTxt, '#475569', member.dir === 'v' ? -Math.PI / 2 : 0);
     }
 
     function clampColumns() {
@@ -541,8 +570,10 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
         const len = memberLength(member);
         totalL += len;
         addBom(bomRows, member.label, len, 1);
-        drawPipe(rx, ry, rw, rh, Math.round(len) + 'mm');
+        drawPipe(rx, ry, rw, rh);
     });
+    // 라벨은 모든 파이프를 그린 뒤에 (다음 파이프가 라벨을 덮지 않도록)
+    finalMembers.forEach(member => drawPipeLabel(member, finalMembers));
 
     drawColumns();
     drawDimensions();

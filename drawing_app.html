@@ -713,7 +713,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
         <img id="photo-modal-img" alt="" class="max-w-[80vw] max-h-[85vh] rounded-xl shadow-2xl object-contain" onclick="event.stopPropagation()">
     </div>
 
-    <script src="drawing_base.js?v=16"></script>
+    <script src="drawing_base.js?v=17"></script>
     <script src="drawing_checkplate.js?v=6"></script>
     <script>
         const globalSettings = { drawing: { panel_width: 900, panel_min_width: 200, panel_gap: 4, door_width_default: 830, door_height_default: 1800 } };
@@ -824,12 +824,15 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
             const lineH = options.lineH || 10;
             const labelH = textLines.length * lineH + 4;
             const labelW = Math.max(...textLines.map(line => ctx.measureText(line).width)) + 4;
+            // rotate(라디안): 세로 부재 등 라벨을 부재 방향으로 회전
+            ctx.translate(screenX, screenY);
+            if (options.rotate) ctx.rotate(options.rotate);
             ctx.fillStyle = options.bg || 'rgba(255,255,255,0.88)';
-            ctx.fillRect(screenX - labelW / 2, screenY - labelH / 2, labelW, labelH);
+            ctx.fillRect(-labelW / 2, -labelH / 2, labelW, labelH);
             ctx.fillStyle = options.color || '#475569';
             textLines.forEach((line, i) => {
-                const y = screenY + (i - (textLines.length - 1) / 2) * lineH;
-                ctx.fillText(line, screenX, y);
+                const y = (i - (textLines.length - 1) / 2) * lineH;
+                ctx.fillText(line, 0, y);
             });
             ctx.restore();
         }
