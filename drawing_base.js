@@ -496,7 +496,7 @@ function renderBaseMode(w, l, ox, oy, scale, dw, dl) {
         const vy2 = typeof toViewportY === 'function' ? toViewportY(y2) : y2;
 
         ctx.save();
-        if (typeof toViewportX === 'function') ctx.setTransform(1, 0, 0, 1, 0, 0);
+        if (typeof toViewportX === 'function') resetViewportTransform();
         ctx.strokeStyle = '#64748b';
         ctx.lineWidth = 1;
 
