@@ -2939,6 +2939,34 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
             document.getElementById('bom-floor-section').innerHTML = makeTable('천장/바닥', floorGrouped);
             document.getElementById('bom-wall-section').innerHTML = makeTable('벽체', wallGrouped);
             document.getElementById('bom-partition-section').innerHTML = makeTable('칸막이', partGrouped);
+
+            // 견적으로 넘기기 위해 집계 결과를 보관한다. 지금까지는 표로 그린 뒤
+            // 버려서, 견적서에 보낼 수 있는 것이 innerText 문자열뿐이었다.
+            lastBOM = {
+                floor: floorGrouped, wall: wallGrouped, partition: partGrouped,
+                door: doorGrouped, totalAreaM2, totalCount,
+            };
+        }
+
+        /** 최근 계산된 BOM 집계. renderDetailedBOM 이 채운다. */
+        let lastBOM = null;
+
+        /** 견적 품목 배열로 바꾼다. { name, spec, unit, qty } — SaaS 의 order_items 형태 */
+        function bomToItems() {
+            if (!lastBOM) return [];
+            const items = [];
+            const push = (name, spec, unit, qty) => {
+                if (!qty) return;
+                items.push({ name, spec, unit, qty });
+            };
+            const panelGroup = (rows, where) => rows.forEach(r =>
+                push(`우레탄판넬 (${where}/${r.type})`, `${r.size} 샷시 ${r.sash}`, '장', r.count));
+            panelGroup(lastBOM.floor, '천장·바닥');
+            panelGroup(lastBOM.wall, '벽체');
+            panelGroup(lastBOM.partition, '칸막이');
+            lastBOM.door.forEach(d =>
+                push(`${d.typeName} (${d.detail})`, `${d.size} ${d.dir} 샷시 ${d.sash}`, '개', d.count));
+            return items;
         }
 
         canvas.addEventListener('wheel', (e) => {
@@ -3827,7 +3855,15 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
         function sendBOMToParent() {
             const isApplyMode = new URLSearchParams(window.location.search).get('mode') === 'apply';
             const specs = { width: parseInt(widthIn.value), length: parseInt(lengthIn.value), height: parseInt(heightIn.value) };
-            const bom = { countText: document.getElementById('mainCount').innerText, statText: document.getElementById('mainStat').innerText };
+            // 받는 쪽(SaaS 견적)은 { name, spec, unit, qty } 배열을 기대한다.
+            // 기존 countText/statText 도 요약 표시용으로 함께 보낸다.
+            const bom = {
+                countText: document.getElementById('mainCount').innerText,
+                statText:  document.getElementById('mainStat').innerText,
+                items:     bomToItems(),
+                totalAreaM2: lastBOM ? lastBOM.totalAreaM2 : 0,
+                totalCount:  lastBOM ? lastBOM.totalCount  : 0,
+            };
             
             if (isApplyMode) {
                 // 자동 이름 생성 → 저장 → 견적서로 복귀
@@ -4261,6 +4297,10 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
         window.onload = () => {
             toggleMaterialView();
             updateDrawing();
+            // ?load=<도면 id> — 견적에 연결된 도면을 이어서 연다.
+            // SaaS 판매 상세의 "도면 연동" 이 quotations.drawing_id 를 붙여 연다.
+            const loadId = new URLSearchParams(window.location.search).get('load');
+            if (loadId) loadDrawing(loadId).catch(() => {});
         };
 
         async function loadFromZip(e) {
