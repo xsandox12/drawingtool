@@ -337,6 +337,9 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                     <button onclick="document.getElementById('zip-loader-input').click()" class="p-2.5 bg-slate-100 text-slate-600 rounded-xl font-black text-[11px] border border-slate-200 hover:bg-slate-200 transition-all flex items-center justify-center gap-1.5">
                         <i class="fa-solid fa-folder-open"></i> 불러오기
                     </button>
+                    <button onclick="export3DModel()" class="col-span-2 p-2.5 bg-slate-800 text-white rounded-xl font-black text-[11px] hover:bg-slate-900 transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-cube"></i> 3D 모델 (.pcad)
+                    </button>
                 </div>
                 <!-- 견적(ColdStorage)에서 ?mode=apply 로 열었을 때만 보인다.
                      단독으로 쓸 때는 보낼 상대가 없다. onload 에서 숨김을 푼다. -->
@@ -721,6 +724,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
 
     <script src="drawing_base.js?v=17"></script>
     <script src="drawing_checkplate.js?v=6"></script>
+    <script src="drawing_3d.js?v=1"></script>
     <script>
         const globalSettings = { drawing: { panel_width: 900, panel_min_width: 200, panel_gap: 4, door_width_default: 830, door_height_default: 1800 } };
         let doors = [], partitions = [], drains = [], columns = [];
@@ -1137,6 +1141,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
             const gap = globalSettings.drawing.panel_gap;
             panelSashRecords = [];
             window.panelSashRecords = panelSashRecords;
+            const layoutWalls = [];
 
             function getPartitionTotalLen(partition) {
                 return ((partition.dir || 'v') === 'v') ? (l - 2 * t) : (w - 2 * t);
@@ -1444,6 +1449,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                             region.y1 > 0 || region.y2 < l
                         );
                         floorCeilBOMRows.push({
+                            x1: panelX1, y1: region.y1, x2: panelX2, y2: region.y2,
                             width: pW,
                             length: region.y2 - region.y1,
                             leftSash: leftConnect ? (floorReversed ? '+' : '-') : 'corner',
@@ -1500,6 +1506,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                             region.x1 > 0 || region.x2 < w
                         );
                         floorCeilBOMRows.push({
+                            x1: region.x1, y1: panelY1, x2: region.x2, y2: panelY2,
                             width: pL,
                             length: region.x2 - region.x1,
                             leftSash: topConnect ? (floorReversed ? '+' : '-') : 'corner',
@@ -1515,6 +1522,14 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
             // labelOutward: 1 = 바깥이 local +y 방향 (하단·좌측벽), -1 = 바깥이 local -y 방향 (상단·우측벽)
             function drawWall(ox_w, oy_w, wallLen, angle, wallIdx, labelOutward, blockedIntervals) {
                 blockedIntervals = blockedIntervals || [];
+                // 3D 내보내기용 벽 좌표계(mm): 로컬 x = dir, 로컬 y(두께) = across
+                layoutWalls.push({
+                    wallIdx,
+                    origin: [(ox_w - ox) / scale, (oy_w - oy) / scale],
+                    dir: [Math.round(Math.cos(angle)), Math.round(Math.sin(angle))],
+                    across: [-Math.round(Math.sin(angle)), Math.round(Math.cos(angle))],
+                    length: wallLen
+                });
                 ctx.save(); ctx.translate(ox_w, oy_w); ctx.rotate(angle);
                 const wallDoors = doors.filter(d => d.wallIndex === wallIdx).sort((a,b) => a.pos - b.pos);
 
@@ -1853,6 +1868,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                                 openingWidth: Math.round(p.door.width),
                                 start: Math.round(drawX),
                                 end: Math.round(drawX + p.w),
+                                openingStart: Math.round(drawX + p.margin),
                                 ..._doorSashForLayout(idx, p.door)
                             });
 
@@ -1918,6 +1934,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                                 openingWidth: Math.round(p.door.width),
                                 start: Math.round(drawX),
                                 end: Math.round(drawX + p.w),
+                                openingStart: Math.round(drawX + p.margin),
                                 ..._doorSashForLayout(idx, p.door)
                             });
                         }
@@ -2131,7 +2148,8 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                 pLayout.forEach((pRun, pIdx) => {
                     const pLen = pRun.length;
                     const pSash = getPartitionPanelSash(pRun, pIdx, pLayout, partitionTotalLen, p);
-                    partitionBOMRows.push({ width: Math.round(pLen), height: _partitionPanelH, leftSash: pSash.startSash, rightSash: pSash.endSash });
+                    partitionBOMRows.push({ width: Math.round(pLen), height: _partitionPanelH, leftSash: pSash.startSash, rightSash: pSash.endSash,
+                        partitionId: p.id, dir: pDir, pos: p.pos, thickness: p.thickness || 100, start: pRun.start, length: pLen });
                     let rx, ry, rw, rh;
                     if (pDir === 'v') {
                         rx = ox + dt + p.pos * scale; // 기준점을 중앙(-pT/2)에서 시작 모서리로 변경
@@ -2369,6 +2387,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                     openingWidth: Math.round(door.width),
                     start: Math.round(door.pos),
                     end: Math.round(door.pos + doorFull),
+                    openingStart: Math.round(door.pos + sideMarginPx / scale),
                     ...partitionDoorSash
                 });
             });
@@ -2638,13 +2657,19 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                             return;
                         }
                         function _recordColumnWrapSash(side, length, startSash, endSash) {
+                            // 3D 내보내기용 감싸기 판넬 영역(mm, 외경 좌상단 기준)
+                            const _px = side === 'top' ? [_tx1, cy - dt, _tx2, cy]
+                                : side === 'bottom' ? [_bx1, cy + cd, _bx2, cy + cd + dt]
+                                : side === 'right' ? [cx + cw, _ry1, cx + cw + dt, _ry2]
+                                : [cx - dt, _ly1, cx, _ly2];
                             panelSashRecords.push({
                                 type: 'column-wrap',
                                 columnId: col.id,
                                 side,
                                 length,
                                 startSash,
-                                endSash
+                                endSash,
+                                rect: { x1: (_px[0] - ox) / scale, y1: (_px[1] - oy) / scale, x2: (_px[2] - ox) / scale, y2: (_px[3] - oy) / scale }
                             });
                         }
                         const wrapLabelGap = Math.max(16, dt * 0.95);
@@ -2818,12 +2843,23 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
             const columnWrapRecords = [];
             panelSashRecords.filter(r => r.type === 'column-wrap' && r.length > 0).forEach(r => {
                 const pieces = r.length > globalSettings.drawing.panel_width ? getLayout(r.length, 'center') : [r.length];
-                pieces.forEach((len, i) => columnWrapRecords.push({
-                    length: Math.round(len),
-                    panelHeight: _wallPanelH,
-                    leftSash: i === 0 ? r.startSash : '-',
-                    rightSash: i === pieces.length - 1 ? r.endSash : '+'
-                }));
+                // 조각은 감싸기 영역의 작은 좌표 쪽부터 차례로 놓인다 (top/bottom: x, left/right: y)
+                const alongX = r.side === 'top' || r.side === 'bottom';
+                let pieceStart = alongX ? r.rect.x1 : r.rect.y1;
+                pieces.forEach((len, i) => {
+                    columnWrapRecords.push({
+                        length: Math.round(len),
+                        panelHeight: _wallPanelH,
+                        leftSash: i === 0 ? r.startSash : '-',
+                        rightSash: i === pieces.length - 1 ? r.endSash : '+',
+                        columnId: r.columnId,
+                        side: r.side,
+                        rect: alongX
+                            ? { x1: pieceStart, y1: r.rect.y1, x2: pieceStart + len, y2: r.rect.y2 }
+                            : { x1: r.rect.x1, y1: pieceStart, x2: r.rect.x2, y2: pieceStart + len }
+                    });
+                    pieceStart += len + gap;
+                });
             });
             const columnWrapAreaM2 = columnWrapRecords.reduce((sum, r) => sum + r.length * _wallPanelH, 0) / 1000000;
             renderDetailedBOM({
@@ -2834,6 +2870,38 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                 totalAreaM2: totalAreaM2 + columnWrapAreaM2,
                 totalCount: wallPanelCount + floorBOMCount + partitionPanelCount + columnWrapRecords.length
             });
+
+            // 3D 모델 생성(3DColdStoage)용 배치. 좌표는 mm, 외경 좌상단(0,0) 기준, y는 아래쪽.
+            lastLayout = {
+                version: 1,
+                inputs: getLayoutInputs(),
+                gap,
+                panelHeight: _wallPanelH,
+                walls: layoutWalls,
+                wallPanels: panelSashRecords.filter(r => r.type === 'wall'),
+                doors: panelSashRecords.filter(r => r.type === 'wall-door' || r.type === 'partition-door')
+                    .map(({ door, ...r }) => ({ ...r, width: door.width, height: door.height || (door.type === 'sliding' ? 2000 : 1800), pos: door.pos, doorStyle: door.doorStyle || null })),
+                floorPanels: floorCeilBOMRows,
+                partitionPanels: partitionBOMRows,
+                columns: columns.map(c => ({ id: c.id, x: c.x, y: c.y, width: c.width, depth: c.depth })),
+                columnWraps: columnWrapRecords,
+                totalCount: wallPanelCount + floorBOMCount + partitionPanelCount + columnWrapRecords.length
+            };
+        }
+
+        /** 최근 계산된 3D용 배치. renderStorageMode 가 채운다. */
+        let lastLayout = null;
+
+        /** 배치 계산에 쓰인 입력값. 3DColdStoage가 drawing.json 본문과 비교해 오래된 배치를 거부한다. */
+        function getLayoutInputs() {
+            return JSON.parse(JSON.stringify({
+                width: parseInt(widthIn.value) || 0,
+                length: parseInt(lengthIn.value) || 0,
+                height: parseInt(heightIn.value) || 0,
+                thickness: parseInt(thicknessIn.value) || 100,
+                hasFloor: floorToggle.checked,
+                floorDir, floorReversed, cornerConfig, panelWidthOverrides, doors, partitions, columns
+            }));
         }
         function renderDetailedBOM({ floorRows, wallRecords, partitionRows, hasFloor, totalAreaM2, totalCount }) {
             document.getElementById('mainStat').innerText = totalAreaM2.toFixed(2) + ' m²';
@@ -3951,7 +4019,8 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                 columns: JSON.parse(JSON.stringify(columns)),
                 memo: document.getElementById('memo-text').value,
                 machines: JSON.parse(JSON.stringify(machines)),
-                photos: JSON.parse(JSON.stringify(photos))
+                photos: JSON.parse(JSON.stringify(photos)),
+                layout: lastLayout ? JSON.parse(JSON.stringify(lastLayout)) : null
             };
         }
 
@@ -4054,6 +4123,28 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
             a.click();
             setTimeout(() => URL.revokeObjectURL(a.href), 1000);
             showToast(`"${name}.cdz" 저장됨`);
+        }
+
+        // 저장고 3D 모델(PrintCAD .pcad) 내려받기. 생성기는 3DColdStoage에서 만든 drawing_3d.js.
+        function export3DModel() {
+            if (typeof ColdStorage3D === 'undefined') { showToast('3D 모듈(drawing_3d.js)을 불러오지 못했습니다.', 'warn'); return; }
+            // 판넬 배치는 '저장고 레이아웃' 화면을 그릴 때 계산되므로 그 탭으로 돌려 최신 배치를 만든다.
+            if (currentMode !== 'storage') setMode('storage');
+            const name = (document.getElementById('drawingName').value || '').trim() || '저장고';
+            let result;
+            try {
+                result = ColdStorage3D.buildPcad({ ...getCurrentState(), name });
+            } catch (e) {
+                showToast(`3D 모델을 만들지 못했습니다: ${e.message}`, 'warn');
+                return;
+            }
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([result.text], { type: 'application/json' }));
+            a.download = `${name}.pcad`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+            if (result.panelCount !== result.bomCount) showToast(`"${name}.pcad" 저장됨 — 판넬 ${result.panelCount}장 (BOM ${result.bomCount}장과 다름)`, 'warn');
+            else showToast(`"${name}.pcad" 저장됨 (판넬 ${result.panelCount}장)`);
         }
 
         function resetDrawing() {
