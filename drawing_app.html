@@ -337,7 +337,10 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
                     <button onclick="document.getElementById('zip-loader-input').click()" class="p-2.5 bg-slate-100 text-slate-600 rounded-xl font-black text-[11px] border border-slate-200 hover:bg-slate-200 transition-all flex items-center justify-center gap-1.5">
                         <i class="fa-solid fa-folder-open"></i> 불러오기
                     </button>
-                    <button onclick="export3DModel()" class="col-span-2 p-2.5 bg-slate-800 text-white rounded-xl font-black text-[11px] hover:bg-slate-900 transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                    <button onclick="view3DModel()" class="p-2.5 bg-slate-800 text-white rounded-xl font-black text-[11px] hover:bg-slate-900 transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-eye"></i> 3D 보기
+                    </button>
+                    <button onclick="export3DModel()" class="p-2.5 bg-slate-800 text-white rounded-xl font-black text-[11px] hover:bg-slate-900 transition-all flex items-center justify-center gap-1.5 shadow-sm">
                         <i class="fa-solid fa-cube"></i> 3D 모델 (.pcad)
                     </button>
                 </div>
@@ -724,7 +727,7 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
 
     <script src="drawing_base.js?v=17"></script>
     <script src="drawing_checkplate.js?v=6"></script>
-    <script src="drawing_3d.js?v=1"></script>
+    <script src="drawing_3d.js?v=2"></script>
     <script>
         const globalSettings = { drawing: { panel_width: 900, panel_min_width: 200, panel_gap: 4, door_width_default: 830, door_height_default: 1800 } };
         let doors = [], partitions = [], drains = [], columns = [];
@@ -4145,6 +4148,33 @@ table tbody td{padding:6px 10px!important;border-bottom:1px solid var(--line-2)!
             setTimeout(() => URL.revokeObjectURL(a.href), 1000);
             if (result.panelCount !== result.bomCount) showToast(`"${name}.pcad" 저장됨 — 판넬 ${result.panelCount}장 (BOM ${result.bomCount}장과 다름)`, 'warn');
             else showToast(`"${name}.pcad" 저장됨 (판넬 ${result.panelCount}장)`);
+        }
+
+        // 저장고 3D 보기. 보기 창(drawing_3d_view.js, three.js 포함)은 처음 누를 때 불러온다.
+        let viewerLoading = null;
+        async function view3DModel() {
+            if (typeof ColdStorage3D === 'undefined') { showToast('3D 모듈(drawing_3d.js)을 불러오지 못했습니다.', 'warn'); return; }
+            if (currentMode !== 'storage') setMode('storage');
+            const name = (document.getElementById('drawingName').value || '').trim() || '저장고';
+            let scene;
+            try {
+                scene = ColdStorage3D.buildScene({ ...getCurrentState(), name });
+            } catch (e) {
+                showToast(`3D 모델을 만들지 못했습니다: ${e.message}`, 'warn');
+                return;
+            }
+            if (typeof ColdStorage3DViewer === 'undefined') {
+                viewerLoading = viewerLoading || new Promise((resolve, reject) => {
+                    const s = document.createElement('script');
+                    s.src = 'drawing_3d_view.js?v=1';
+                    s.onload = resolve;
+                    s.onerror = () => { viewerLoading = null; reject(new Error('3D 보기(drawing_3d_view.js)를 불러오지 못했습니다.')); };
+                    document.head.appendChild(s);
+                });
+                try { await viewerLoading; } catch (e) { showToast(e.message, 'warn'); return; }
+            }
+            ColdStorage3DViewer.open(scene.shapes, `${name} — 판넬 ${scene.panelCount}장`);
+            if (scene.panelCount !== scene.bomCount) showToast(`판넬 ${scene.panelCount}장 (BOM ${scene.bomCount}장과 다름)`, 'warn');
         }
 
         function resetDrawing() {
